@@ -144,7 +144,8 @@ TcpRateLinux::CalculateAppLimited(uint32_t cWnd,
         && in_flight < cWnd                   // We are not limited by CWND.
         && lostOut <= retransOut)             // All lost packets have been retransmitted.
     {
-        SetAppLimited(in_flight);
+        m_rate.m_appLimited = std::max<uint32_t>(m_rate.m_delivered + in_flight, 1);
+        m_rateTrace(m_rate);
     }
 
     // m_appLimited will be reset once in GenerateSample, if it has to be.
@@ -152,13 +153,6 @@ TcpRateLinux::CalculateAppLimited(uint32_t cWnd,
     //  {
     //    m_rate.m_appLimited = 0;
     //  }
-}
-
-void
-TcpRateLinux::SetAppLimited(uint32_t in_flight)
-{
-    m_rate.m_appLimited = std::max<uint32_t>(m_rate.m_delivered + in_flight, 1);
-    m_rateTrace(m_rate);
 }
 
 void

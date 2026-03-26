@@ -10,11 +10,9 @@
 #include "ns3/boolean.h"
 #include "ns3/constant-position-mobility-model.h"
 #include "ns3/ctrl-headers.h"
-#include "ns3/demangle.h"
 #include "ns3/double.h"
-#include "ns3/eht-configuration.h"
-#include "ns3/eht-phy.h"
 #include "ns3/he-configuration.h"
+#include "ns3/he-phy.h"
 #include "ns3/he-ppdu.h"
 #include "ns3/interference-helper.h"
 #include "ns3/log.h"
@@ -59,11 +57,10 @@ static const MHz_u DEFAULT_GUARD_WIDTH =
     DEFAULT_CHANNEL_WIDTH; // expanded to channel width to model spectrum mask
 
 /**
- * PHY entity slightly modified so as to return a given
+ * HE PHY slightly modified so as to return a given
  * STA-ID in case of DL MU for OfdmaSpectrumWifiPhy.
  */
-template <typename PhyEntityType>
-class OfdmaTestPhy : public PhyEntityType
+class OfdmaTestHePhy : public HePhy
 {
   public:
     /**
@@ -71,7 +68,8 @@ class OfdmaTestPhy : public PhyEntityType
      *
      * @param staId the ID of the STA to which this PHY belongs to
      */
-    OfdmaTestPhy(uint16_t staId);
+    OfdmaTestHePhy(uint16_t staId);
+    ~OfdmaTestHePhy() override;
 
     /**
      * Return the STA ID that has been assigned to the station this PHY belongs to.
@@ -89,94 +87,39 @@ class OfdmaTestPhy : public PhyEntityType
      */
     void SetGlobalPpduUid(uint64_t uid);
 
-    /**
-     * Get the band used to transmit the non-OFDMA part of an HE TB PPDU.
-     *
-     * @param txVector the TXVECTOR used for the transmission
-     * @param staId the STA-ID of the station taking part of the UL MU
-     *
-     * @return the spectrum band used to transmit the non-OFDMA part of an HE TB PPDU
-     */
-    WifiSpectrumBandInfo GetNonOfdmaBand(const WifiTxVector& txVector, uint16_t staId) const;
-
   private:
     uint16_t m_staId; ///< ID of the STA to which this PHY belongs to
+};                    // class OfdmaTestHePhy
 
-    // end of class OfdmaTestPhy
-};
-
-template <typename PhyEntityType>
-OfdmaTestPhy<PhyEntityType>::OfdmaTestPhy(uint16_t staId)
-    : PhyEntityType(),
+OfdmaTestHePhy::OfdmaTestHePhy(uint16_t staId)
+    : HePhy(),
       m_staId(staId)
 {
 }
 
-template <typename PhyEntityType>
-uint16_t
-OfdmaTestPhy<PhyEntityType>::GetStaId(const Ptr<const WifiPpdu> ppdu) const
+OfdmaTestHePhy::~OfdmaTestHePhy()
 {
-    NS_LOG_FUNCTION(this << ppdu);
+}
+
+uint16_t
+OfdmaTestHePhy::GetStaId(const Ptr<const WifiPpdu> ppdu) const
+{
     if (ppdu->GetType() == WIFI_PPDU_TYPE_DL_MU)
     {
         return m_staId;
     }
-    return PhyEntityType::GetStaId(ppdu);
+    return HePhy::GetStaId(ppdu);
 }
 
-template <typename PhyEntityType>
 void
-OfdmaTestPhy<PhyEntityType>::SetGlobalPpduUid(uint64_t uid)
+OfdmaTestHePhy::SetGlobalPpduUid(uint64_t uid)
 {
-    PhyEntityType::m_globalPpduUid = uid;
-}
-
-template <typename PhyEntityType>
-WifiSpectrumBandInfo
-OfdmaTestPhy<PhyEntityType>::GetNonOfdmaBand(const WifiTxVector& txVector, uint16_t staId) const
-{
-    const auto mc = txVector.GetModulationClass();
-    NS_ASSERT(txVector.IsUlMu() && (mc >= WIFI_MOD_CLASS_HE));
-    const auto channelWidth = txVector.GetChannelWidth();
-    NS_ASSERT(channelWidth <= PhyEntityType::m_wifiPhy->GetChannelWidth());
-
-    auto ru = txVector.GetRu(staId);
-    const auto nonOfdmaWidth = PhyEntityType::GetNonOfdmaWidth(ru);
-
-    // Find the RU that encompasses the non-OFDMA part of the HE TB PPDU for the STA-ID
-    auto nonOfdmaRu = WifiRu::FindOverlappingRu(channelWidth, ru, WifiRu::GetRuType(nonOfdmaWidth));
-
-    const auto groupPreamble = WifiRu::GetSubcarrierGroup(
-        channelWidth,
-        WifiRu::GetRuType(nonOfdmaRu),
-        WifiRu::GetPhyIndex(
-            nonOfdmaRu,
-            channelWidth,
-            PhyEntityType::m_wifiPhy->GetOperatingChannel().GetPrimaryChannelIndex(MHz_u{20})),
-        mc);
-    const auto indices = PhyEntityType::ConvertRuSubcarriers(
-        {channelWidth,
-         PhyEntityType::GetGuardBandwidth(PhyEntityType::m_wifiPhy->GetChannelWidth()),
-         PhyEntityType::m_wifiPhy->GetOperatingChannel().GetFrequencies(),
-         PhyEntityType::m_wifiPhy->GetChannelWidth(),
-         PhyEntityType::m_wifiPhy->GetSubcarrierSpacing(),
-         mc,
-         {groupPreamble.front().first, groupPreamble.back().second},
-         PhyEntityType::m_wifiPhy->GetOperatingChannel().GetPrimaryChannelIndex(channelWidth)});
-    WifiSpectrumBandInfo nonOfdmaBand{};
-    for (const auto& indicesPerSegment : indices)
-    {
-        nonOfdmaBand.indices.emplace_back(indicesPerSegment);
-        nonOfdmaBand.frequencies.emplace_back(
-            PhyEntityType::m_wifiPhy->ConvertIndicesToFrequencies(indicesPerSegment));
-    }
-    return nonOfdmaBand;
+    m_globalPpduUid = uid;
 }
 
 /**
  * SpectrumWifiPhy used for testing OFDMA.
  */
-template <typename LatestPhyEntityType>
 class OfdmaSpectrumWifiPhy : public SpectrumWifiPhy
 {
   public:
@@ -191,6 +134,7 @@ class OfdmaSpectrumWifiPhy : public SpectrumWifiPhy
      * @param staId the ID of the STA to which this PHY belongs to
      */
     OfdmaSpectrumWifiPhy(uint16_t staId);
+    ~OfdmaSpectrumWifiPhy() override;
 
     void DoInitialize() override;
     void DoDispose() override;
@@ -241,113 +185,98 @@ class OfdmaSpectrumWifiPhy : public SpectrumWifiPhy
     Time GetEnergyDuration(Watt_u energy, WifiSpectrumBandInfo band);
 
     /**
-     * @return a const pointer to the latest PHY entity instance
+     * @return a const pointer to the HE PHY instance
      */
-    std::shared_ptr<LatestPhyEntityType> GetPhyEntity() const;
+    Ptr<const HePhy> GetHePhy() const;
 
   private:
-    /// Pointer to latest PHY entity instance used for OFDMA test
-    std::shared_ptr<OfdmaTestPhy<LatestPhyEntityType>> m_ofdmaTestPhy;
+    Ptr<OfdmaTestHePhy> m_ofdmTestHePhy; ///< Pointer to HE PHY instance used for OFDMA test
+    TracedCallback<uint64_t>
+        m_phyTxPpduUidTrace; //!< Callback providing UID of the PPDU that is about to be transmitted
+};                           // class OfdmaSpectrumWifiPhy
 
-    /// Callback providing UID of the PPDU that is about to be transmitted
-    TracedCallback<uint64_t> m_phyTxPpduUidTrace;
-
-    // end of class OfdmaSpectrumWifiPhy
-};
-
-template <typename LatestPhyEntityType>
 TypeId
-OfdmaSpectrumWifiPhy<LatestPhyEntityType>::GetTypeId()
+OfdmaSpectrumWifiPhy::GetTypeId()
 {
     static TypeId tid =
-        TypeId(std::string("ns3::OfdmaSpectrumWifiPhy") +
-               Demangle(typeid(LatestPhyEntityType).name()))
+        TypeId("ns3::OfdmaSpectrumWifiPhy")
             .SetParent<SpectrumWifiPhy>()
             .SetGroupName("Wifi")
             .AddTraceSource("TxPpduUid",
                             "UID of the PPDU to be transmitted",
-                            MakeTraceSourceAccessor(
-                                &OfdmaSpectrumWifiPhy<LatestPhyEntityType>::m_phyTxPpduUidTrace),
-                            "ns3::OfdmaSpectrumWifiPhy<LatestPhyEntityType>::TxPpduUidCallback");
+                            MakeTraceSourceAccessor(&OfdmaSpectrumWifiPhy::m_phyTxPpduUidTrace),
+                            "ns3::OfdmaSpectrumWifiPhy::TxPpduUidCallback");
     return tid;
 }
 
-template <typename LatestPhyEntityType>
-OfdmaSpectrumWifiPhy<LatestPhyEntityType>::OfdmaSpectrumWifiPhy(uint16_t staId)
+OfdmaSpectrumWifiPhy::OfdmaSpectrumWifiPhy(uint16_t staId)
     : SpectrumWifiPhy()
 {
-    m_ofdmaTestPhy = std::make_shared<OfdmaTestPhy<LatestPhyEntityType>>(staId);
-    m_ofdmaTestPhy->SetOwner(this);
+    m_ofdmTestHePhy = Create<OfdmaTestHePhy>(staId);
+    m_ofdmTestHePhy->SetOwner(this);
 }
 
-template <typename LatestPhyEntityType>
-void
-OfdmaSpectrumWifiPhy<LatestPhyEntityType>::DoInitialize()
+OfdmaSpectrumWifiPhy::~OfdmaSpectrumWifiPhy()
 {
-    const auto modClass = GetModulationClassForStandard(GetStandard());
-    // Replace PHY instance with test instance
-    m_phyEntities[modClass] = m_ofdmaTestPhy;
+}
+
+void
+OfdmaSpectrumWifiPhy::DoInitialize()
+{
+    // Replace HE PHY instance with test instance
+    m_phyEntities[WIFI_MOD_CLASS_HE] = m_ofdmTestHePhy;
     SpectrumWifiPhy::DoInitialize();
 }
 
-template <typename LatestPhyEntityType>
 void
-OfdmaSpectrumWifiPhy<LatestPhyEntityType>::DoDispose()
+OfdmaSpectrumWifiPhy::DoDispose()
 {
-    m_ofdmaTestPhy = nullptr;
+    m_ofdmTestHePhy = nullptr;
     SpectrumWifiPhy::DoDispose();
 }
 
-template <typename LatestPhyEntityType>
 void
-OfdmaSpectrumWifiPhy<LatestPhyEntityType>::SetPpduUid(uint64_t uid)
+OfdmaSpectrumWifiPhy::SetPpduUid(uint64_t uid)
 {
-    m_ofdmaTestPhy->SetGlobalPpduUid(uid);
+    m_ofdmTestHePhy->SetGlobalPpduUid(uid);
     m_previouslyRxPpduUid = uid;
 }
 
-template <typename LatestPhyEntityType>
 void
-OfdmaSpectrumWifiPhy<LatestPhyEntityType>::SetTriggerFrameUid(uint64_t uid)
+OfdmaSpectrumWifiPhy::SetTriggerFrameUid(uint64_t uid)
 {
     m_previouslyRxPpduUid = uid;
 }
 
-template <typename LatestPhyEntityType>
 void
-OfdmaSpectrumWifiPhy<LatestPhyEntityType>::StartTx(Ptr<const WifiPpdu> ppdu)
+OfdmaSpectrumWifiPhy::StartTx(Ptr<const WifiPpdu> ppdu)
 {
     m_phyTxPpduUidTrace(ppdu->GetUid());
     SpectrumWifiPhy::StartTx(ppdu);
 }
 
-template <typename LatestPhyEntityType>
 std::map<std::pair<uint64_t, WifiPreamble>, Ptr<Event>>&
-OfdmaSpectrumWifiPhy<LatestPhyEntityType>::GetCurrentPreambleEvents()
+OfdmaSpectrumWifiPhy::GetCurrentPreambleEvents()
 {
     return m_currentPreambleEvents;
 }
 
-template <typename LatestPhyEntityType>
 Ptr<Event>
-OfdmaSpectrumWifiPhy<LatestPhyEntityType>::GetCurrentEvent()
+OfdmaSpectrumWifiPhy::GetCurrentEvent()
 {
     return m_currentEvent;
 }
 
-template <typename LatestPhyEntityType>
 Time
-OfdmaSpectrumWifiPhy<LatestPhyEntityType>::GetEnergyDuration(Watt_u energy,
-                                                             WifiSpectrumBandInfo band)
+OfdmaSpectrumWifiPhy::GetEnergyDuration(Watt_u energy, WifiSpectrumBandInfo band)
 {
     return m_interference->GetEnergyDuration(energy, band);
 }
 
-template <typename LatestPhyEntityType>
-std::shared_ptr<LatestPhyEntityType>
-OfdmaSpectrumWifiPhy<LatestPhyEntityType>::GetPhyEntity() const
+Ptr<const HePhy>
+OfdmaSpectrumWifiPhy::GetHePhy() const
 {
-    return std::dynamic_pointer_cast<LatestPhyEntityType>(m_ofdmaTestPhy /*GetLatestPhyEntity()*/);
+    return DynamicCast<const HePhy>(GetLatestPhyEntity());
 }
 
 /**
@@ -356,14 +285,11 @@ OfdmaSpectrumWifiPhy<LatestPhyEntityType>::GetPhyEntity() const
  *
  * @brief DL-OFDMA PHY test
  */
-template <typename LatestPhyEntityType>
 class TestDlOfdmaPhyTransmission : public TestCase
 {
   public:
-    /**
-     * Constructor
-     */
     TestDlOfdmaPhyTransmission();
+    ~TestDlOfdmaPhyTransmission() override;
 
   private:
     void DoSetup() override;
@@ -481,55 +407,54 @@ class TestDlOfdmaPhyTransmission : public TestCase
      * @param phy the PHY
      * @param expectedState the expected state of the PHY
      */
-    void CheckPhyState(Ptr<OfdmaSpectrumWifiPhy<LatestPhyEntityType>> phy,
-                       WifiPhyState expectedState);
+    void CheckPhyState(Ptr<OfdmaSpectrumWifiPhy> phy, WifiPhyState expectedState);
     /**
      * Check the PHY state now
      * @param phy the PHY
      * @param expectedState the expected state of the PHY
      */
-    void DoCheckPhyState(Ptr<OfdmaSpectrumWifiPhy<LatestPhyEntityType>> phy,
-                         WifiPhyState expectedState);
+    void DoCheckPhyState(Ptr<OfdmaSpectrumWifiPhy> phy, WifiPhyState expectedState);
 
-    WifiModulationClass m_modClass; ///< the modulation class to consider for the test
+    uint32_t m_countRxSuccessSta1; ///< count RX success for STA 1
+    uint32_t m_countRxSuccessSta2; ///< count RX success for STA 2
+    uint32_t m_countRxSuccessSta3; ///< count RX success for STA 3
+    uint32_t m_countRxFailureSta1; ///< count RX failure for STA 1
+    uint32_t m_countRxFailureSta2; ///< count RX failure for STA 2
+    uint32_t m_countRxFailureSta3; ///< count RX failure for STA 3
+    uint32_t m_countRxBytesSta1;   ///< count RX bytes for STA 1
+    uint32_t m_countRxBytesSta2;   ///< count RX bytes for STA 2
+    uint32_t m_countRxBytesSta3;   ///< count RX bytes for STA 3
 
-    uint32_t m_countRxSuccessSta1{0}; ///< count RX success for STA 1
-    uint32_t m_countRxSuccessSta2{0}; ///< count RX success for STA 2
-    uint32_t m_countRxSuccessSta3{0}; ///< count RX success for STA 3
-    uint32_t m_countRxFailureSta1{0}; ///< count RX failure for STA 1
-    uint32_t m_countRxFailureSta2{0}; ///< count RX failure for STA 2
-    uint32_t m_countRxFailureSta3{0}; ///< count RX failure for STA 3
-    uint32_t m_countRxBytesSta1{0};   ///< count RX bytes for STA 1
-    uint32_t m_countRxBytesSta2{0};   ///< count RX bytes for STA 2
-    uint32_t m_countRxBytesSta3{0};   ///< count RX bytes for STA 3
+    Ptr<SpectrumWifiPhy> m_phyAp;           ///< PHY of AP
+    Ptr<OfdmaSpectrumWifiPhy> m_phySta1;    ///< PHY of STA 1
+    Ptr<OfdmaSpectrumWifiPhy> m_phySta2;    ///< PHY of STA 2
+    Ptr<OfdmaSpectrumWifiPhy> m_phySta3;    ///< PHY of STA 3
+    Ptr<WaveformGenerator> m_phyInterferer; ///< PHY of interferer
 
-    Ptr<SpectrumWifiPhy> m_phyAp;                             ///< PHY of AP
-    Ptr<OfdmaSpectrumWifiPhy<LatestPhyEntityType>> m_phySta1; ///< PHY of STA 1
-    Ptr<OfdmaSpectrumWifiPhy<LatestPhyEntityType>> m_phySta2; ///< PHY of STA 2
-    Ptr<OfdmaSpectrumWifiPhy<LatestPhyEntityType>> m_phySta3; ///< PHY of STA 3
-    Ptr<WaveformGenerator> m_phyInterferer;                   ///< PHY of interferer
-
-    MHz_u m_frequency{DEFAULT_FREQUENCY};        ///< frequency
-    MHz_u m_channelWidth{DEFAULT_CHANNEL_WIDTH}; ///< channel width
-    Time m_expectedPpduDuration;                 ///< expected duration to send MU PPDU
+    MHz_u m_frequency;           ///< frequency
+    MHz_u m_channelWidth;        ///< channel width
+    Time m_expectedPpduDuration; ///< expected duration to send MU PPDU
 };
 
-template <typename LatestPhyEntityType>
-TestDlOfdmaPhyTransmission<LatestPhyEntityType>::TestDlOfdmaPhyTransmission()
-    : TestCase{std::string("DL-OFDMA PHY test for ") +
-               ((Demangle(typeid(LatestPhyEntityType).name()).find("He") != std::string::npos)
-                    ? "HE"
-                    : "EHT")},
-      m_modClass{(Demangle(typeid(LatestPhyEntityType).name()).find("He") != std::string::npos)
-                     ? WIFI_MOD_CLASS_HE
-                     : WIFI_MOD_CLASS_EHT},
-      m_expectedPpduDuration{NanoSeconds(306400)}
+TestDlOfdmaPhyTransmission::TestDlOfdmaPhyTransmission()
+    : TestCase("DL-OFDMA PHY test"),
+      m_countRxSuccessSta1(0),
+      m_countRxSuccessSta2(0),
+      m_countRxSuccessSta3(0),
+      m_countRxFailureSta1(0),
+      m_countRxFailureSta2(0),
+      m_countRxFailureSta3(0),
+      m_countRxBytesSta1(0),
+      m_countRxBytesSta2(0),
+      m_countRxBytesSta3(0),
+      m_frequency(DEFAULT_FREQUENCY),
+      m_channelWidth(DEFAULT_CHANNEL_WIDTH),
+      m_expectedPpduDuration(NanoSeconds(306400))
 {
 }
 
-template <typename LatestPhyEntityType>
 void
-TestDlOfdmaPhyTransmission<LatestPhyEntityType>::ResetResults()
+TestDlOfdmaPhyTransmission::ResetResults()
 {
     m_countRxSuccessSta1 = 0;
     m_countRxSuccessSta2 = 0;
@@ -542,92 +467,57 @@ TestDlOfdmaPhyTransmission<LatestPhyEntityType>::ResetResults()
     m_countRxBytesSta3 = 0;
 }
 
-template <typename LatestPhyEntityType>
 void
-TestDlOfdmaPhyTransmission<LatestPhyEntityType>::SendMuPpdu(uint16_t rxStaId1, uint16_t rxStaId2)
+TestDlOfdmaPhyTransmission::SendMuPpdu(uint16_t rxStaId1, uint16_t rxStaId2)
 {
     NS_LOG_FUNCTION(this << rxStaId1 << rxStaId2);
     WifiConstPsduMap psdus;
-    WifiTxVector txVector{
-        (m_modClass == WIFI_MOD_CLASS_HE) ? HePhy::GetHeMcs7() : EhtPhy::GetEhtMcs7(),
-        0,
-        (m_modClass == WIFI_MOD_CLASS_HE) ? WIFI_PREAMBLE_HE_MU : WIFI_PREAMBLE_EHT_MU,
-        NanoSeconds(800),
-        1,
-        1,
-        0,
-        m_channelWidth,
-        false,
-        false};
-    if (m_modClass == WIFI_MOD_CLASS_EHT)
-    {
-        txVector.SetEhtPpduType(0);
-    }
-    auto ruType{RuType::RU_TYPE_MAX};
+    WifiTxVector txVector{HePhy::GetHeMcs7(),
+                          0,
+                          WIFI_PREAMBLE_HE_MU,
+                          NanoSeconds(800),
+                          1,
+                          1,
+                          0,
+                          m_channelWidth,
+                          false,
+                          false};
+    HeRu::RuType ruType = HeRu::RU_106_TONE;
     if (m_channelWidth == MHz_u{20})
     {
-        ruType = RuType::RU_106_TONE;
-        const uint16_t ruAllocPer20 = (m_modClass == WIFI_MOD_CLASS_HE) ? 96 : 48;
-        txVector.SetRuAllocation({ruAllocPer20}, 0);
+        ruType = HeRu::RU_106_TONE;
+        txVector.SetRuAllocation({96}, 0);
     }
     else if (m_channelWidth == MHz_u{40})
     {
-        ruType = RuType::RU_242_TONE;
-        const uint16_t ruAllocPer20 = (m_modClass == WIFI_MOD_CLASS_HE) ? 192 : 64;
-        txVector.SetRuAllocation({ruAllocPer20, ruAllocPer20}, 0);
+        ruType = HeRu::RU_242_TONE;
+        txVector.SetRuAllocation({192, 192}, 0);
     }
     else if (m_channelWidth == MHz_u{80})
     {
-        ruType = RuType::RU_484_TONE;
-        const uint16_t ruAllocUser = (m_modClass == WIFI_MOD_CLASS_HE) ? 200 : 72;
-        const uint16_t ruAllocNoUser = (m_modClass == WIFI_MOD_CLASS_HE) ? 114 : 29;
-        txVector.SetRuAllocation({ruAllocUser, ruAllocNoUser, ruAllocNoUser, ruAllocUser}, 0);
+        ruType = HeRu::RU_484_TONE;
+        txVector.SetRuAllocation({200, 200, 200, 200}, 0);
     }
     else if (m_channelWidth == MHz_u{160})
     {
-        ruType = RuType::RU_996_TONE;
-        const uint16_t ruAllocUser = (m_modClass == WIFI_MOD_CLASS_HE) ? 208 : 80;
-        const uint16_t ruAllocNoUser = (m_modClass == WIFI_MOD_CLASS_HE) ? 115 : 30;
-        txVector.SetRuAllocation({ruAllocUser,
-                                  ruAllocNoUser,
-                                  ruAllocUser,
-                                  ruAllocNoUser,
-                                  ruAllocNoUser,
-                                  ruAllocUser,
-                                  ruAllocNoUser,
-                                  ruAllocUser},
-                                 0);
-    }
-    else if (m_channelWidth == MHz_u{320})
-    {
-        NS_ASSERT(m_modClass >= WIFI_MOD_CLASS_EHT);
-        ruType = RuType::RU_2x996_TONE;
-        txVector.SetRuAllocation({88, 30, 88, 30, 88, 30, 88, 30, 30, 88, 30, 88, 30, 88, 30, 88},
-                                 0);
+        ruType = HeRu::RU_996_TONE;
+        txVector.SetRuAllocation({208, 208, 208, 208, 208, 208, 208, 208}, 0);
     }
     else
     {
-        NS_ASSERT_MSG(false, "Unsupported channel width: " << m_channelWidth);
+        NS_ASSERT_MSG(false, "Unsupported channel width");
     }
 
     txVector.SetSigBMode(VhtPhy::GetVhtMcs5());
 
-    const auto ru1 = (m_modClass == WIFI_MOD_CLASS_HE)
-                         ? WifiRu::RuSpec(HeRu::RuSpec{ruType, 1, true})
-                         : WifiRu::RuSpec(EhtRu::RuSpec{ruType, 1, true, true});
+    HeRu::RuSpec ru1(ruType, 1, true);
     txVector.SetRu(ru1, rxStaId1);
-    txVector.SetMode((m_modClass == WIFI_MOD_CLASS_HE) ? HePhy::GetHeMcs7() : EhtPhy::GetEhtMcs7(),
-                     rxStaId1);
+    txVector.SetMode(HePhy::GetHeMcs7(), rxStaId1);
     txVector.SetNss(1, rxStaId1);
 
-    std::size_t ru2Index = (m_channelWidth > MHz_u{80}) ? 1 : 2;
-    const auto ru2 =
-        (m_modClass == WIFI_MOD_CLASS_HE)
-            ? WifiRu::RuSpec(HeRu::RuSpec{ruType, ru2Index, m_channelWidth != MHz_u{160}})
-            : WifiRu::RuSpec(EhtRu::RuSpec{ruType, ru2Index, m_channelWidth != MHz_u{320}, true});
+    HeRu::RuSpec ru2(ruType, (m_channelWidth == MHz_u{160} ? 1 : 2), m_channelWidth != MHz_u{160});
     txVector.SetRu(ru2, rxStaId2);
-    txVector.SetMode((m_modClass == WIFI_MOD_CLASS_HE) ? HePhy::GetHeMcs9() : EhtPhy::GetEhtMcs9(),
-                     rxStaId2);
+    txVector.SetMode(HePhy::GetHeMcs9(), rxStaId2);
     txVector.SetNss(1, rxStaId2);
 
     Ptr<Packet> pkt1 = Create<Packet>(1000);
@@ -651,160 +541,138 @@ TestDlOfdmaPhyTransmission<LatestPhyEntityType>::SendMuPpdu(uint16_t rxStaId1, u
     m_phyAp->Send(psdus, txVector);
 }
 
-template <typename LatestPhyEntityType>
 void
-TestDlOfdmaPhyTransmission<LatestPhyEntityType>::GenerateInterference(
-    Ptr<SpectrumValue> interferencePsd,
-    Time duration)
+TestDlOfdmaPhyTransmission::GenerateInterference(Ptr<SpectrumValue> interferencePsd, Time duration)
 {
     m_phyInterferer->SetTxPowerSpectralDensity(interferencePsd);
     m_phyInterferer->SetPeriod(duration);
     m_phyInterferer->Start();
-    Simulator::Schedule(duration,
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::StopInterference,
-                        this);
+    Simulator::Schedule(duration, &TestDlOfdmaPhyTransmission::StopInterference, this);
 }
 
-template <typename LatestPhyEntityType>
 void
-TestDlOfdmaPhyTransmission<LatestPhyEntityType>::StopInterference()
+TestDlOfdmaPhyTransmission::StopInterference()
 {
     m_phyInterferer->Stop();
 }
 
-template <typename LatestPhyEntityType>
+TestDlOfdmaPhyTransmission::~TestDlOfdmaPhyTransmission()
+{
+}
+
 void
-TestDlOfdmaPhyTransmission<LatestPhyEntityType>::RxSuccessSta1(
-    Ptr<const WifiPsdu> psdu,
-    RxSignalInfo rxSignalInfo,
-    const WifiTxVector& txVector,
-    const std::vector<bool>& /*statusPerMpdu*/)
+TestDlOfdmaPhyTransmission::RxSuccessSta1(Ptr<const WifiPsdu> psdu,
+                                          RxSignalInfo rxSignalInfo,
+                                          const WifiTxVector& txVector,
+                                          const std::vector<bool>& /*statusPerMpdu*/)
 {
     NS_LOG_FUNCTION(this << *psdu << rxSignalInfo << txVector);
     m_countRxSuccessSta1++;
     m_countRxBytesSta1 += (psdu->GetSize() - 30);
 }
 
-template <typename LatestPhyEntityType>
 void
-TestDlOfdmaPhyTransmission<LatestPhyEntityType>::RxSuccessSta2(
-    Ptr<const WifiPsdu> psdu,
-    RxSignalInfo rxSignalInfo,
-    const WifiTxVector& txVector,
-    const std::vector<bool>& /*statusPerMpdu*/)
+TestDlOfdmaPhyTransmission::RxSuccessSta2(Ptr<const WifiPsdu> psdu,
+                                          RxSignalInfo rxSignalInfo,
+                                          const WifiTxVector& txVector,
+                                          const std::vector<bool>& /*statusPerMpdu*/)
 {
     NS_LOG_FUNCTION(this << *psdu << rxSignalInfo << txVector);
     m_countRxSuccessSta2++;
     m_countRxBytesSta2 += (psdu->GetSize() - 30);
 }
 
-template <typename LatestPhyEntityType>
 void
-TestDlOfdmaPhyTransmission<LatestPhyEntityType>::RxSuccessSta3(
-    Ptr<const WifiPsdu> psdu,
-    RxSignalInfo rxSignalInfo,
-    const WifiTxVector& txVector,
-    const std::vector<bool>& /*statusPerMpdu*/)
+TestDlOfdmaPhyTransmission::RxSuccessSta3(Ptr<const WifiPsdu> psdu,
+                                          RxSignalInfo rxSignalInfo,
+                                          const WifiTxVector& txVector,
+                                          const std::vector<bool>& /*statusPerMpdu*/)
 {
     NS_LOG_FUNCTION(this << *psdu << rxSignalInfo << txVector);
     m_countRxSuccessSta3++;
     m_countRxBytesSta3 += (psdu->GetSize() - 30);
 }
 
-template <typename LatestPhyEntityType>
 void
-TestDlOfdmaPhyTransmission<LatestPhyEntityType>::RxFailureSta1(Ptr<const WifiPsdu> psdu)
+TestDlOfdmaPhyTransmission::RxFailureSta1(Ptr<const WifiPsdu> psdu)
 {
     NS_LOG_FUNCTION(this << *psdu);
     m_countRxFailureSta1++;
 }
 
-template <typename LatestPhyEntityType>
 void
-TestDlOfdmaPhyTransmission<LatestPhyEntityType>::RxFailureSta2(Ptr<const WifiPsdu> psdu)
+TestDlOfdmaPhyTransmission::RxFailureSta2(Ptr<const WifiPsdu> psdu)
 {
     NS_LOG_FUNCTION(this << *psdu);
     m_countRxFailureSta2++;
 }
 
-template <typename LatestPhyEntityType>
 void
-TestDlOfdmaPhyTransmission<LatestPhyEntityType>::RxFailureSta3(Ptr<const WifiPsdu> psdu)
+TestDlOfdmaPhyTransmission::RxFailureSta3(Ptr<const WifiPsdu> psdu)
 {
     NS_LOG_FUNCTION(this << *psdu);
     m_countRxFailureSta3++;
 }
 
-template <typename LatestPhyEntityType>
 void
-TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckResultsSta1(uint32_t expectedRxSuccess,
-                                                                  uint32_t expectedRxFailure,
-                                                                  uint32_t expectedRxBytes)
+TestDlOfdmaPhyTransmission::CheckResultsSta1(uint32_t expectedRxSuccess,
+                                             uint32_t expectedRxFailure,
+                                             uint32_t expectedRxBytes)
 {
     NS_TEST_ASSERT_MSG_EQ(m_countRxSuccessSta1,
                           expectedRxSuccess,
                           "The number of successfully received packets by STA 1 is not correct!");
     NS_TEST_ASSERT_MSG_EQ(m_countRxFailureSta1,
                           expectedRxFailure,
-                          "The number of unsuccessfully received packets by STA 1 is not correct!");
+                          "The number of unsuccessfuly received packets by STA 1 is not correct!");
     NS_TEST_ASSERT_MSG_EQ(m_countRxBytesSta1,
                           expectedRxBytes,
                           "The number of bytes received by STA 1 is not correct!");
 }
 
-template <typename LatestPhyEntityType>
 void
-TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckResultsSta2(uint32_t expectedRxSuccess,
-                                                                  uint32_t expectedRxFailure,
-                                                                  uint32_t expectedRxBytes)
+TestDlOfdmaPhyTransmission::CheckResultsSta2(uint32_t expectedRxSuccess,
+                                             uint32_t expectedRxFailure,
+                                             uint32_t expectedRxBytes)
 {
     NS_TEST_ASSERT_MSG_EQ(m_countRxSuccessSta2,
                           expectedRxSuccess,
                           "The number of successfully received packets by STA 2 is not correct!");
     NS_TEST_ASSERT_MSG_EQ(m_countRxFailureSta2,
                           expectedRxFailure,
-                          "The number of unsuccessfully received packets by STA 2 is not correct!");
+                          "The number of unsuccessfuly received packets by STA 2 is not correct!");
     NS_TEST_ASSERT_MSG_EQ(m_countRxBytesSta2,
                           expectedRxBytes,
                           "The number of bytes received by STA 2 is not correct!");
 }
 
-template <typename LatestPhyEntityType>
 void
-TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckResultsSta3(uint32_t expectedRxSuccess,
-                                                                  uint32_t expectedRxFailure,
-                                                                  uint32_t expectedRxBytes)
+TestDlOfdmaPhyTransmission::CheckResultsSta3(uint32_t expectedRxSuccess,
+                                             uint32_t expectedRxFailure,
+                                             uint32_t expectedRxBytes)
 {
     NS_TEST_ASSERT_MSG_EQ(m_countRxSuccessSta3,
                           expectedRxSuccess,
                           "The number of successfully received packets by STA 3 is not correct!");
     NS_TEST_ASSERT_MSG_EQ(m_countRxFailureSta3,
                           expectedRxFailure,
-                          "The number of unsuccessfully received packets by STA 3 is not correct!");
+                          "The number of unsuccessfuly received packets by STA 3 is not correct!");
     NS_TEST_ASSERT_MSG_EQ(m_countRxBytesSta3,
                           expectedRxBytes,
                           "The number of bytes received by STA 3 is not correct!");
 }
 
-template <typename LatestPhyEntityType>
 void
-TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState(
-    Ptr<OfdmaSpectrumWifiPhy<LatestPhyEntityType>> phy,
-    WifiPhyState expectedState)
+TestDlOfdmaPhyTransmission::CheckPhyState(Ptr<OfdmaSpectrumWifiPhy> phy, WifiPhyState expectedState)
 {
     // This is needed to make sure PHY state will be checked as the last event if a state change
     // occurred at the exact same time as the check
-    Simulator::ScheduleNow(&TestDlOfdmaPhyTransmission<LatestPhyEntityType>::DoCheckPhyState,
-                           this,
-                           phy,
-                           expectedState);
+    Simulator::ScheduleNow(&TestDlOfdmaPhyTransmission::DoCheckPhyState, this, phy, expectedState);
 }
 
-template <typename LatestPhyEntityType>
 void
-TestDlOfdmaPhyTransmission<LatestPhyEntityType>::DoCheckPhyState(
-    Ptr<OfdmaSpectrumWifiPhy<LatestPhyEntityType>> phy,
-    WifiPhyState expectedState)
+TestDlOfdmaPhyTransmission::DoCheckPhyState(Ptr<OfdmaSpectrumWifiPhy> phy,
+                                            WifiPhyState expectedState)
 {
     WifiPhyState currentState;
     PointerValue ptr;
@@ -818,13 +686,9 @@ TestDlOfdmaPhyTransmission<LatestPhyEntityType>::DoCheckPhyState(
                                        << expectedState << " at " << Simulator::Now());
 }
 
-template <typename LatestPhyEntityType>
 void
-TestDlOfdmaPhyTransmission<LatestPhyEntityType>::DoSetup()
+TestDlOfdmaPhyTransmission::DoSetup()
 {
-    const auto standard =
-        (m_modClass == WIFI_MOD_CLASS_HE) ? WIFI_STANDARD_80211ax : WIFI_STANDARD_80211be;
-
     Ptr<MultiModelSpectrumChannel> spectrumChannel = CreateObject<MultiModelSpectrumChannel>();
     Ptr<FriisPropagationLossModel> lossModel = CreateObject<FriisPropagationLossModel>();
     lossModel->SetFrequency(MHzToHz(m_frequency));
@@ -842,93 +706,69 @@ TestDlOfdmaPhyTransmission<LatestPhyEntityType>::DoSetup()
     m_phyAp->SetErrorRateModel(apErrorModel);
     m_phyAp->SetDevice(apDev);
     m_phyAp->AddChannel(spectrumChannel);
-    m_phyAp->ConfigureStandard(standard);
+    m_phyAp->ConfigureStandard(WIFI_STANDARD_80211ax);
     Ptr<ConstantPositionMobilityModel> apMobility = CreateObject<ConstantPositionMobilityModel>();
     m_phyAp->SetMobility(apMobility);
     apDev->SetPhy(m_phyAp);
     apNode->AggregateObject(apMobility);
     apNode->AddDevice(apDev);
-    apDev->SetStandard(standard);
-    if (m_modClass >= WIFI_MOD_CLASS_EHT)
-    {
-        apDev->SetEhtConfiguration(CreateObject<EhtConfiguration>());
-    }
 
     Ptr<Node> sta1Node = CreateObject<Node>();
     Ptr<WifiNetDevice> sta1Dev = CreateObject<WifiNetDevice>();
-    m_phySta1 = CreateObject<OfdmaSpectrumWifiPhy<LatestPhyEntityType>>(1);
+    m_phySta1 = CreateObject<OfdmaSpectrumWifiPhy>(1);
     Ptr<InterferenceHelper> sta1InterferenceHelper = CreateObject<InterferenceHelper>();
     m_phySta1->SetInterferenceHelper(sta1InterferenceHelper);
     Ptr<ErrorRateModel> sta1ErrorModel = CreateObject<NistErrorRateModel>();
     m_phySta1->SetErrorRateModel(sta1ErrorModel);
     m_phySta1->SetDevice(sta1Dev);
     m_phySta1->AddChannel(spectrumChannel);
-    m_phySta1->ConfigureStandard(standard);
-    m_phySta1->SetReceiveOkCallback(
-        MakeCallback(&TestDlOfdmaPhyTransmission<LatestPhyEntityType>::RxSuccessSta1, this));
+    m_phySta1->ConfigureStandard(WIFI_STANDARD_80211ax);
+    m_phySta1->SetReceiveOkCallback(MakeCallback(&TestDlOfdmaPhyTransmission::RxSuccessSta1, this));
     m_phySta1->SetReceiveErrorCallback(
-        MakeCallback(&TestDlOfdmaPhyTransmission<LatestPhyEntityType>::RxFailureSta1, this));
+        MakeCallback(&TestDlOfdmaPhyTransmission::RxFailureSta1, this));
     Ptr<ConstantPositionMobilityModel> sta1Mobility = CreateObject<ConstantPositionMobilityModel>();
     m_phySta1->SetMobility(sta1Mobility);
     sta1Dev->SetPhy(m_phySta1);
     sta1Node->AggregateObject(sta1Mobility);
     sta1Node->AddDevice(sta1Dev);
-    sta1Dev->SetStandard(standard);
-    if (m_modClass >= WIFI_MOD_CLASS_EHT)
-    {
-        sta1Dev->SetEhtConfiguration(CreateObject<EhtConfiguration>());
-    }
 
     Ptr<Node> sta2Node = CreateObject<Node>();
     Ptr<WifiNetDevice> sta2Dev = CreateObject<WifiNetDevice>();
-    m_phySta2 = CreateObject<OfdmaSpectrumWifiPhy<LatestPhyEntityType>>(2);
+    m_phySta2 = CreateObject<OfdmaSpectrumWifiPhy>(2);
     Ptr<InterferenceHelper> sta2InterferenceHelper = CreateObject<InterferenceHelper>();
     m_phySta2->SetInterferenceHelper(sta2InterferenceHelper);
     Ptr<ErrorRateModel> sta2ErrorModel = CreateObject<NistErrorRateModel>();
     m_phySta2->SetErrorRateModel(sta2ErrorModel);
     m_phySta2->SetDevice(sta2Dev);
     m_phySta2->AddChannel(spectrumChannel);
-    m_phySta2->ConfigureStandard(standard);
-    m_phySta2->SetReceiveOkCallback(
-        MakeCallback(&TestDlOfdmaPhyTransmission<LatestPhyEntityType>::RxSuccessSta2, this));
+    m_phySta2->ConfigureStandard(WIFI_STANDARD_80211ax);
+    m_phySta2->SetReceiveOkCallback(MakeCallback(&TestDlOfdmaPhyTransmission::RxSuccessSta2, this));
     m_phySta2->SetReceiveErrorCallback(
-        MakeCallback(&TestDlOfdmaPhyTransmission<LatestPhyEntityType>::RxFailureSta2, this));
+        MakeCallback(&TestDlOfdmaPhyTransmission::RxFailureSta2, this));
     Ptr<ConstantPositionMobilityModel> sta2Mobility = CreateObject<ConstantPositionMobilityModel>();
     m_phySta2->SetMobility(sta2Mobility);
     sta2Dev->SetPhy(m_phySta2);
     sta2Node->AggregateObject(sta2Mobility);
     sta2Node->AddDevice(sta2Dev);
-    sta2Dev->SetStandard(standard);
-    if (m_modClass >= WIFI_MOD_CLASS_EHT)
-    {
-        sta2Dev->SetEhtConfiguration(CreateObject<EhtConfiguration>());
-    }
 
     Ptr<Node> sta3Node = CreateObject<Node>();
     Ptr<WifiNetDevice> sta3Dev = CreateObject<WifiNetDevice>();
-    m_phySta3 = CreateObject<OfdmaSpectrumWifiPhy<LatestPhyEntityType>>(3);
+    m_phySta3 = CreateObject<OfdmaSpectrumWifiPhy>(3);
     Ptr<InterferenceHelper> sta3InterferenceHelper = CreateObject<InterferenceHelper>();
     m_phySta3->SetInterferenceHelper(sta3InterferenceHelper);
     Ptr<ErrorRateModel> sta3ErrorModel = CreateObject<NistErrorRateModel>();
     m_phySta3->SetErrorRateModel(sta3ErrorModel);
     m_phySta3->SetDevice(sta3Dev);
     m_phySta3->AddChannel(spectrumChannel);
-    m_phySta3->ConfigureStandard(standard);
-    sta3Dev->SetEhtConfiguration(CreateObject<EhtConfiguration>());
-    m_phySta3->SetReceiveOkCallback(
-        MakeCallback(&TestDlOfdmaPhyTransmission<LatestPhyEntityType>::RxSuccessSta3, this));
+    m_phySta3->ConfigureStandard(WIFI_STANDARD_80211ax);
+    m_phySta3->SetReceiveOkCallback(MakeCallback(&TestDlOfdmaPhyTransmission::RxSuccessSta3, this));
     m_phySta3->SetReceiveErrorCallback(
-        MakeCallback(&TestDlOfdmaPhyTransmission<LatestPhyEntityType>::RxFailureSta3, this));
+        MakeCallback(&TestDlOfdmaPhyTransmission::RxFailureSta3, this));
     Ptr<ConstantPositionMobilityModel> sta3Mobility = CreateObject<ConstantPositionMobilityModel>();
     m_phySta3->SetMobility(sta3Mobility);
     sta3Dev->SetPhy(m_phySta3);
     sta3Node->AggregateObject(sta3Mobility);
     sta3Node->AddDevice(sta3Dev);
-    sta3Dev->SetStandard(standard);
-    if (m_modClass >= WIFI_MOD_CLASS_EHT)
-    {
-        sta3Dev->SetEhtConfiguration(CreateObject<EhtConfiguration>());
-    }
 
     Ptr<Node> interfererNode = CreateObject<Node>();
     Ptr<NonCommunicatingNetDevice> interfererDev = CreateObject<NonCommunicatingNetDevice>();
@@ -939,9 +779,8 @@ TestDlOfdmaPhyTransmission<LatestPhyEntityType>::DoSetup()
     interfererNode->AddDevice(interfererDev);
 }
 
-template <typename LatestPhyEntityType>
 void
-TestDlOfdmaPhyTransmission<LatestPhyEntityType>::DoTeardown()
+TestDlOfdmaPhyTransmission::DoTeardown()
 {
     m_phyAp->Dispose();
     m_phyAp = nullptr;
@@ -955,9 +794,8 @@ TestDlOfdmaPhyTransmission<LatestPhyEntityType>::DoTeardown()
     m_phyInterferer = nullptr;
 }
 
-template <typename LatestPhyEntityType>
 void
-TestDlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
+TestDlOfdmaPhyTransmission::RunOne()
 {
     RngSeedManager::SetSeed(1);
     RngSeedManager::SetRun(1);
@@ -970,165 +808,138 @@ TestDlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     auto channelNum = WifiPhyOperatingChannel::FindFirst(0,
                                                          m_frequency,
                                                          m_channelWidth,
-                                                         WIFI_STANDARD_80211be,
-                                                         WIFI_PHY_BAND_6GHZ)
+                                                         WIFI_STANDARD_80211ax,
+                                                         WIFI_PHY_BAND_5GHZ)
                           ->number;
 
-    const auto operatingChannel{
-        WifiPhy::ChannelTuple{channelNum, m_channelWidth, WIFI_PHY_BAND_6GHZ, 0}};
-    m_phyAp->SetOperatingChannel(operatingChannel);
-    m_phySta1->SetOperatingChannel(operatingChannel);
-    m_phySta2->SetOperatingChannel(operatingChannel);
-    m_phySta3->SetOperatingChannel(operatingChannel);
+    m_phyAp->SetOperatingChannel(
+        WifiPhy::ChannelTuple{channelNum, m_channelWidth, WIFI_PHY_BAND_5GHZ, 0});
+    m_phySta1->SetOperatingChannel(
+        WifiPhy::ChannelTuple{channelNum, m_channelWidth, WIFI_PHY_BAND_5GHZ, 0});
+    m_phySta2->SetOperatingChannel(
+        WifiPhy::ChannelTuple{channelNum, m_channelWidth, WIFI_PHY_BAND_5GHZ, 0});
+    m_phySta3->SetOperatingChannel(
+        WifiPhy::ChannelTuple{channelNum, m_channelWidth, WIFI_PHY_BAND_5GHZ, 0});
 
-    Simulator::Schedule(Seconds(0.5),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::ResetResults,
-                        this);
+    Simulator::Schedule(Seconds(0.5), &TestDlOfdmaPhyTransmission::ResetResults, this);
 
     // Send MU PPDU with two PSDUs addressed to STA 1 and STA 2:
     // Each STA should receive its PSDU.
-    Simulator::Schedule(Seconds(1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::SendMuPpdu,
-                        this,
-                        1,
-                        2);
+    Simulator::Schedule(Seconds(1), &TestDlOfdmaPhyTransmission::SendMuPpdu, this, 1, 2);
 
     // Since it takes m_expectedPpduDuration to transmit the PPDU,
     // all 3 PHYs should be back to IDLE at the same time,
     // even the PHY that has no PSDU addressed to it.
     Simulator::Schedule(Seconds(1) + m_expectedPpduDuration - NanoSeconds(1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta1,
                         WifiPhyState::RX);
-
     Simulator::Schedule(Seconds(1) + m_expectedPpduDuration - NanoSeconds(1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta2,
                         WifiPhyState::RX);
     Simulator::Schedule(Seconds(1) + m_expectedPpduDuration - NanoSeconds(1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta3,
                         WifiPhyState::CCA_BUSY);
     Simulator::Schedule(Seconds(1) + m_expectedPpduDuration,
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta1,
                         WifiPhyState::IDLE);
     Simulator::Schedule(Seconds(1) + m_expectedPpduDuration,
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta2,
                         WifiPhyState::IDLE);
     Simulator::Schedule(Seconds(1) + m_expectedPpduDuration,
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta3,
                         WifiPhyState::IDLE);
 
     // One PSDU of 1000 bytes should have been successfully received by STA 1
     Simulator::Schedule(Seconds(1.1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckResultsSta1,
+                        &TestDlOfdmaPhyTransmission::CheckResultsSta1,
                         this,
                         1,
                         0,
                         1000);
     // One PSDU of 1500 bytes should have been successfully received by STA 2
     Simulator::Schedule(Seconds(1.1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckResultsSta2,
+                        &TestDlOfdmaPhyTransmission::CheckResultsSta2,
                         this,
                         1,
                         0,
                         1500);
     // No PSDU should have been received by STA 3
-    Simulator::Schedule(Seconds(1.1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckResultsSta3,
-                        this,
-                        0,
-                        0,
-                        0);
+    Simulator::Schedule(Seconds(1.1), &TestDlOfdmaPhyTransmission::CheckResultsSta3, this, 0, 0, 0);
 
-    Simulator::Schedule(Seconds(1.5),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::ResetResults,
-                        this);
+    Simulator::Schedule(Seconds(1.5), &TestDlOfdmaPhyTransmission::ResetResults, this);
 
     // Send MU PPDU with two PSDUs addressed to STA 1 and STA 3:
     // STA 1 should receive its PSDU, whereas STA 2 should not receive any PSDU
     // but should keep its PHY busy during all PPDU duration.
-    Simulator::Schedule(Seconds(2),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::SendMuPpdu,
-                        this,
-                        1,
-                        3);
+    Simulator::Schedule(Seconds(2), &TestDlOfdmaPhyTransmission::SendMuPpdu, this, 1, 3);
 
     // Since it takes m_expectedPpduDuration to transmit the PPDU,
     // all 3 PHYs should be back to IDLE at the same time,
     // even the PHY that has no PSDU addressed to it.
     Simulator::Schedule(Seconds(2) + m_expectedPpduDuration - NanoSeconds(1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta1,
                         WifiPhyState::RX);
     Simulator::Schedule(Seconds(2) + m_expectedPpduDuration - NanoSeconds(1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta2,
                         WifiPhyState::CCA_BUSY);
     Simulator::Schedule(Seconds(2) + m_expectedPpduDuration - NanoSeconds(1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta3,
                         WifiPhyState::RX);
     Simulator::Schedule(Seconds(2) + m_expectedPpduDuration,
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta1,
                         WifiPhyState::IDLE);
     Simulator::Schedule(Seconds(2) + m_expectedPpduDuration,
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta2,
                         WifiPhyState::IDLE);
     Simulator::Schedule(Seconds(2) + m_expectedPpduDuration,
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta3,
                         WifiPhyState::IDLE);
 
     // One PSDU of 1000 bytes should have been successfully received by STA 1
     Simulator::Schedule(Seconds(2.1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckResultsSta1,
+                        &TestDlOfdmaPhyTransmission::CheckResultsSta1,
                         this,
                         1,
                         0,
                         1000);
     // No PSDU should have been received by STA 2
-    Simulator::Schedule(Seconds(2.1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckResultsSta2,
-                        this,
-                        0,
-                        0,
-                        0);
+    Simulator::Schedule(Seconds(2.1), &TestDlOfdmaPhyTransmission::CheckResultsSta2, this, 0, 0, 0);
     // One PSDU of 1500 bytes should have been successfully received by STA 3
     Simulator::Schedule(Seconds(2.1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckResultsSta3,
+                        &TestDlOfdmaPhyTransmission::CheckResultsSta3,
                         this,
                         1,
                         0,
                         1500);
 
-    Simulator::Schedule(Seconds(2.5),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::ResetResults,
-                        this);
+    Simulator::Schedule(Seconds(2.5), &TestDlOfdmaPhyTransmission::ResetResults, this);
 
     // Send MU PPDU with two PSDUs addressed to STA 1 and STA 2:
-    Simulator::Schedule(Seconds(3),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::SendMuPpdu,
-                        this,
-                        1,
-                        2);
+    Simulator::Schedule(Seconds(3), &TestDlOfdmaPhyTransmission::SendMuPpdu, this, 1, 2);
 
     // A strong non-wifi interference is generated on RU 1 during PSDU reception
     BandInfo bandInfo;
@@ -1143,8 +954,8 @@ TestDlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     Watt_u interferencePower{0.1};
     *interferencePsdRu1 = interferencePower / (MHzToHz(m_channelWidth / 2) * 20);
 
-    Simulator::Schedule(Seconds(3) + MicroSeconds(40),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::GenerateInterference,
+    Simulator::Schedule(Seconds(3) + MicroSeconds(50),
+                        &TestDlOfdmaPhyTransmission::GenerateInterference,
                         this,
                         interferencePsdRu1,
                         MilliSeconds(100));
@@ -1153,69 +964,53 @@ TestDlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     // both PHYs should be back to CCA_BUSY (due to the interference) at the same time,
     // even the PHY that has no PSDU addressed to it.
     Simulator::Schedule(Seconds(3) + m_expectedPpduDuration - NanoSeconds(1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta1,
                         WifiPhyState::RX);
     Simulator::Schedule(Seconds(3) + m_expectedPpduDuration - NanoSeconds(1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta2,
                         WifiPhyState::RX);
     Simulator::Schedule(Seconds(3) + m_expectedPpduDuration - NanoSeconds(1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta3,
                         WifiPhyState::CCA_BUSY);
     Simulator::Schedule(Seconds(3) + m_expectedPpduDuration,
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta1,
                         WifiPhyState::CCA_BUSY);
     Simulator::Schedule(Seconds(3) + m_expectedPpduDuration,
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta2,
                         WifiPhyState::CCA_BUSY);
     Simulator::Schedule(Seconds(3) + m_expectedPpduDuration,
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta3,
                         WifiPhyState::CCA_BUSY);
 
-    // One PSDU of 1000 bytes should have been unsuccessfully received by STA 1 (since interference
+    // One PSDU of 1000 bytes should have been unsuccessfuly received by STA 1 (since interference
     // occupies RU 1)
-    Simulator::Schedule(Seconds(3.1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckResultsSta1,
-                        this,
-                        0,
-                        1,
-                        0);
+    Simulator::Schedule(Seconds(3.1), &TestDlOfdmaPhyTransmission::CheckResultsSta1, this, 0, 1, 0);
     // One PSDU of 1500 bytes should have been successfully received by STA 2
     Simulator::Schedule(Seconds(3.1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckResultsSta2,
+                        &TestDlOfdmaPhyTransmission::CheckResultsSta2,
                         this,
                         1,
                         0,
                         1500);
     // No PSDU should have been received by STA3
-    Simulator::Schedule(Seconds(3.1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckResultsSta3,
-                        this,
-                        0,
-                        0,
-                        0);
+    Simulator::Schedule(Seconds(3.1), &TestDlOfdmaPhyTransmission::CheckResultsSta3, this, 0, 0, 0);
 
-    Simulator::Schedule(Seconds(3.5),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::ResetResults,
-                        this);
+    Simulator::Schedule(Seconds(3.5), &TestDlOfdmaPhyTransmission::ResetResults, this);
 
     // Send MU PPDU with two PSDUs addressed to STA 1 and STA 2:
-    Simulator::Schedule(Seconds(4),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::SendMuPpdu,
-                        this,
-                        1,
-                        2);
+    Simulator::Schedule(Seconds(4), &TestDlOfdmaPhyTransmission::SendMuPpdu, this, 1, 2);
 
     // A strong non-wifi interference is generated on RU 2 during PSDU reception
     bandInfo.fc = MHzToHz(m_frequency + (m_channelWidth / 4));
@@ -1228,8 +1023,8 @@ TestDlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     Ptr<SpectrumValue> interferencePsdRu2 = Create<SpectrumValue>(SpectrumInterferenceRu2);
     *interferencePsdRu2 = interferencePower / (MHzToHz(m_channelWidth / 2) * 20);
 
-    Simulator::Schedule(Seconds(4) + MicroSeconds(40),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::GenerateInterference,
+    Simulator::Schedule(Seconds(4) + MicroSeconds(50),
+                        &TestDlOfdmaPhyTransmission::GenerateInterference,
                         this,
                         interferencePsdRu2,
                         MilliSeconds(100));
@@ -1238,34 +1033,34 @@ TestDlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     // both PHYs should be back to IDLE (or CCA_BUSY if interference on the primary 20 MHz) at the
     // same time, even the PHY that has no PSDU addressed to it.
     Simulator::Schedule(Seconds(4) + m_expectedPpduDuration - NanoSeconds(1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta1,
                         WifiPhyState::RX);
     Simulator::Schedule(Seconds(4) + m_expectedPpduDuration - NanoSeconds(1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta2,
                         WifiPhyState::RX);
     Simulator::Schedule(Seconds(4) + m_expectedPpduDuration - NanoSeconds(1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta3,
                         WifiPhyState::CCA_BUSY);
     Simulator::Schedule(Seconds(4) + m_expectedPpduDuration,
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta1,
                         (m_channelWidth >= MHz_u{40}) ? WifiPhyState::IDLE
                                                       : WifiPhyState::CCA_BUSY);
     Simulator::Schedule(Seconds(4) + m_expectedPpduDuration,
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta2,
                         (m_channelWidth >= MHz_u{40}) ? WifiPhyState::IDLE
                                                       : WifiPhyState::CCA_BUSY);
     Simulator::Schedule(Seconds(4) + m_expectedPpduDuration,
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta3,
                         (m_channelWidth >= MHz_u{40}) ? WifiPhyState::IDLE
@@ -1273,37 +1068,21 @@ TestDlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
 
     // One PSDU of 1000 bytes should have been successfully received by STA 1
     Simulator::Schedule(Seconds(4.1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckResultsSta1,
+                        &TestDlOfdmaPhyTransmission::CheckResultsSta1,
                         this,
                         1,
                         0,
                         1000);
-    // One PSDU of 1500 bytes should have been unsuccessfully received by STA 2 (since interference
+    // One PSDU of 1500 bytes should have been unsuccessfuly received by STA 2 (since interference
     // occupies RU 2)
-    Simulator::Schedule(Seconds(4.1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckResultsSta2,
-                        this,
-                        0,
-                        1,
-                        0);
+    Simulator::Schedule(Seconds(4.1), &TestDlOfdmaPhyTransmission::CheckResultsSta2, this, 0, 1, 0);
     // No PSDU should have been received by STA3
-    Simulator::Schedule(Seconds(4.1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckResultsSta3,
-                        this,
-                        0,
-                        0,
-                        0);
+    Simulator::Schedule(Seconds(4.1), &TestDlOfdmaPhyTransmission::CheckResultsSta3, this, 0, 0, 0);
 
-    Simulator::Schedule(Seconds(4.5),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::ResetResults,
-                        this);
+    Simulator::Schedule(Seconds(4.5), &TestDlOfdmaPhyTransmission::ResetResults, this);
 
     // Send MU PPDU with two PSDUs addressed to STA 1 and STA 2:
-    Simulator::Schedule(Seconds(5),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::SendMuPpdu,
-                        this,
-                        1,
-                        2);
+    Simulator::Schedule(Seconds(5), &TestDlOfdmaPhyTransmission::SendMuPpdu, this, 1, 2);
 
     // A strong non-wifi interference is generated on the full band during PSDU reception
     bandInfo.fc = MHzToHz(m_frequency);
@@ -1316,8 +1095,8 @@ TestDlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     Ptr<SpectrumValue> interferencePsdAll = Create<SpectrumValue>(SpectrumInterferenceAll);
     *interferencePsdAll = interferencePower / (MHzToHz(m_channelWidth) * 20);
 
-    Simulator::Schedule(Seconds(5) + MicroSeconds(40),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::GenerateInterference,
+    Simulator::Schedule(Seconds(5) + MicroSeconds(50),
+                        &TestDlOfdmaPhyTransmission::GenerateInterference,
                         this,
                         interferencePsdAll,
                         MilliSeconds(100));
@@ -1326,98 +1105,72 @@ TestDlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     // both PHYs should be back to CCA_BUSY (due to the interference) at the same time,
     // even the PHY that has no PSDU addressed to it.
     Simulator::Schedule(Seconds(5) + m_expectedPpduDuration - NanoSeconds(1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta1,
                         WifiPhyState::RX);
     Simulator::Schedule(Seconds(5) + m_expectedPpduDuration - NanoSeconds(1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta2,
                         WifiPhyState::RX);
     Simulator::Schedule(Seconds(5) + m_expectedPpduDuration - NanoSeconds(1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta3,
                         WifiPhyState::CCA_BUSY);
     Simulator::Schedule(Seconds(5) + m_expectedPpduDuration,
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta1,
                         WifiPhyState::CCA_BUSY);
     Simulator::Schedule(Seconds(5) + m_expectedPpduDuration,
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta2,
                         WifiPhyState::CCA_BUSY);
     Simulator::Schedule(Seconds(5) + m_expectedPpduDuration,
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestDlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta3,
                         WifiPhyState::CCA_BUSY);
 
-    // One PSDU of 1000 bytes should have been unsuccessfully received by STA 1 (since interference
+    // One PSDU of 1000 bytes should have been unsuccessfuly received by STA 1 (since interference
     // occupies RU 1)
-    Simulator::Schedule(Seconds(5.1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckResultsSta1,
-                        this,
-                        0,
-                        1,
-                        0);
-    // One PSDU of 1500 bytes should have been unsuccessfully received by STA 2 (since interference
+    Simulator::Schedule(Seconds(5.1), &TestDlOfdmaPhyTransmission::CheckResultsSta1, this, 0, 1, 0);
+    // One PSDU of 1500 bytes should have been unsuccessfuly received by STA 2 (since interference
     // occupies RU 2)
-    Simulator::Schedule(Seconds(5.1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckResultsSta2,
-                        this,
-                        0,
-                        1,
-                        0);
+    Simulator::Schedule(Seconds(5.1), &TestDlOfdmaPhyTransmission::CheckResultsSta2, this, 0, 1, 0);
     // No PSDU should have been received by STA3
-    Simulator::Schedule(Seconds(5.1),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::CheckResultsSta3,
-                        this,
-                        0,
-                        0,
-                        0);
+    Simulator::Schedule(Seconds(5.1), &TestDlOfdmaPhyTransmission::CheckResultsSta3, this, 0, 0, 0);
 
-    Simulator::Schedule(Seconds(5.5),
-                        &TestDlOfdmaPhyTransmission<LatestPhyEntityType>::ResetResults,
-                        this);
+    Simulator::Schedule(Seconds(5.5), &TestDlOfdmaPhyTransmission::ResetResults, this);
 
     Simulator::Run();
 }
 
-template <typename LatestPhyEntityType>
 void
-TestDlOfdmaPhyTransmission<LatestPhyEntityType>::DoRun()
+TestDlOfdmaPhyTransmission::DoRun()
 {
-    m_frequency = MHz_u{5955};
+    m_frequency = MHz_u{5180};
     m_channelWidth = MHz_u{20};
     m_expectedPpduDuration = NanoSeconds(306400);
     RunOne();
 
-    m_frequency = MHz_u{5965};
+    m_frequency = MHz_u{5190};
     m_channelWidth = MHz_u{40};
     m_expectedPpduDuration = NanoSeconds(156800);
     RunOne();
 
-    m_frequency = MHz_u{5985};
+    m_frequency = MHz_u{5210};
     m_channelWidth = MHz_u{80};
     m_expectedPpduDuration = NanoSeconds(102400);
     RunOne();
 
-    m_frequency = MHz_u{6025};
+    m_frequency = MHz_u{5250};
     m_channelWidth = MHz_u{160};
     m_expectedPpduDuration = NanoSeconds(75200);
     RunOne();
-
-    if (m_modClass >= WIFI_MOD_CLASS_EHT)
-    {
-        m_frequency = MHz_u{6105};
-        m_channelWidth = MHz_u{320};
-        m_expectedPpduDuration = NanoSeconds(61600);
-        RunOne();
-    }
 
     Simulator::Destroy();
 }
@@ -1532,14 +1285,14 @@ class TestDlOfdmaPhyPuncturing : public TestCase
      * @param phy the PHY
      * @param expectedState the expected state of the PHY
      */
-    void CheckPhyState(Ptr<OfdmaSpectrumWifiPhy<HePhy>> phy, WifiPhyState expectedState);
+    void CheckPhyState(Ptr<OfdmaSpectrumWifiPhy> phy, WifiPhyState expectedState);
 
     /**
      * Check the PHY state now
      * @param phy the PHY
      * @param expectedState the expected state of the PHY
      */
-    void DoCheckPhyState(Ptr<OfdmaSpectrumWifiPhy<HePhy>> phy, WifiPhyState expectedState);
+    void DoCheckPhyState(Ptr<OfdmaSpectrumWifiPhy> phy, WifiPhyState expectedState);
 
     uint32_t m_countRxSuccessSta1; ///< count RX success for STA 1
     uint32_t m_countRxSuccessSta2; ///< count RX success for STA 2
@@ -1548,10 +1301,10 @@ class TestDlOfdmaPhyPuncturing : public TestCase
     uint32_t m_countRxBytesSta1;   ///< count RX bytes for STA 1
     uint32_t m_countRxBytesSta2;   ///< count RX bytes for STA 2
 
-    Ptr<SpectrumWifiPhy> m_phyAp;               ///< PHY of AP
-    Ptr<OfdmaSpectrumWifiPhy<HePhy>> m_phySta1; ///< PHY of STA 1
-    Ptr<OfdmaSpectrumWifiPhy<HePhy>> m_phySta2; ///< PHY of STA 2
-    Ptr<WaveformGenerator> m_phyInterferer;     ///< PHY of interferer
+    Ptr<SpectrumWifiPhy> m_phyAp;           ///< PHY of AP
+    Ptr<OfdmaSpectrumWifiPhy> m_phySta1;    ///< PHY of STA 1
+    Ptr<OfdmaSpectrumWifiPhy> m_phySta2;    ///< PHY of STA 2
+    Ptr<WaveformGenerator> m_phyInterferer; ///< PHY of interferer
 
     MHz_u m_frequency;    ///< frequency
     MHz_u m_channelWidth; ///< channel width
@@ -1608,19 +1361,20 @@ TestDlOfdmaPhyPuncturing::SendMuPpdu(uint16_t rxStaId1,
                           false,
                           false};
 
-    RuType ruType = puncturedSubchannels.empty()
-                        ? RuType::RU_484_TONE
-                        : (puncturedSubchannels.at(1) ? RuType::RU_242_TONE : RuType::RU_484_TONE);
+    HeRu::RuType ruType =
+        puncturedSubchannels.empty()
+            ? HeRu::RU_484_TONE
+            : (puncturedSubchannels.at(1) ? HeRu::RU_242_TONE : HeRu::RU_484_TONE);
     HeRu::RuSpec ru1(ruType, 1, true);
     txVector.SetRu(ru1, rxStaId1);
     txVector.SetMode(HePhy::GetHeMcs7(), rxStaId1);
     txVector.SetNss(1, rxStaId1);
 
     ruType = puncturedSubchannels.empty()
-                 ? RuType::RU_484_TONE
-                 : (puncturedSubchannels.at(1) ? RuType::RU_484_TONE : RuType::RU_242_TONE);
+                 ? HeRu::RU_484_TONE
+                 : (puncturedSubchannels.at(1) ? HeRu::RU_484_TONE : HeRu::RU_242_TONE);
     HeRu::RuSpec ru2(ruType,
-                     ruType == RuType::RU_484_TONE ? 2 : (puncturedSubchannels.at(3) ? 3 : 4),
+                     ruType == HeRu::RU_484_TONE ? 2 : (puncturedSubchannels.at(3) ? 3 : 4),
                      true);
     txVector.SetRu(ru2, rxStaId2);
     txVector.SetMode(HePhy::GetHeMcs9(), rxStaId2);
@@ -1629,17 +1383,14 @@ TestDlOfdmaPhyPuncturing::SendMuPpdu(uint16_t rxStaId1,
     RuAllocation ruAlloc;
     if (puncturedSubchannels.empty())
     {
-        ruAlloc.push_back(200);
-        ruAlloc.push_back(114);
-        ruAlloc.push_back(114);
-        ruAlloc.push_back(200);
+        std::fill_n(std::back_inserter(ruAlloc), 4, 200);
     }
     else
     {
         ruAlloc.push_back(puncturedSubchannels.at(1) ? 192 : 200);
-        ruAlloc.push_back(puncturedSubchannels.at(1) ? 113 : 114);
+        ruAlloc.push_back(puncturedSubchannels.at(1) ? 113 : 200);
         ruAlloc.push_back(puncturedSubchannels.at(2) ? 113
-                                                     : (puncturedSubchannels.at(3) ? 192 : 114));
+                                                     : (puncturedSubchannels.at(3) ? 192 : 200));
         ruAlloc.push_back(puncturedSubchannels.at(2) ? 192
                                                      : (puncturedSubchannels.at(3) ? 113 : 200));
     }
@@ -1736,7 +1487,7 @@ TestDlOfdmaPhyPuncturing::CheckResultsSta1(uint32_t expectedRxSuccess,
                           "The number of successfully received packets by STA 1 is not correct!");
     NS_TEST_ASSERT_MSG_EQ(m_countRxFailureSta1,
                           expectedRxFailure,
-                          "The number of unsuccessfully received packets by STA 1 is not correct!");
+                          "The number of unsuccessfuly received packets by STA 1 is not correct!");
     NS_TEST_ASSERT_MSG_EQ(m_countRxBytesSta1,
                           expectedRxBytes,
                           "The number of bytes received by STA 1 is not correct!");
@@ -1752,15 +1503,14 @@ TestDlOfdmaPhyPuncturing::CheckResultsSta2(uint32_t expectedRxSuccess,
                           "The number of successfully received packets by STA 2 is not correct!");
     NS_TEST_ASSERT_MSG_EQ(m_countRxFailureSta2,
                           expectedRxFailure,
-                          "The number of unsuccessfully received packets by STA 2 is not correct!");
+                          "The number of unsuccessfuly received packets by STA 2 is not correct!");
     NS_TEST_ASSERT_MSG_EQ(m_countRxBytesSta2,
                           expectedRxBytes,
                           "The number of bytes received by STA 2 is not correct!");
 }
 
 void
-TestDlOfdmaPhyPuncturing::CheckPhyState(Ptr<OfdmaSpectrumWifiPhy<HePhy>> phy,
-                                        WifiPhyState expectedState)
+TestDlOfdmaPhyPuncturing::CheckPhyState(Ptr<OfdmaSpectrumWifiPhy> phy, WifiPhyState expectedState)
 {
     // This is needed to make sure PHY state will be checked as the last event if a state change
     // occurred at the exact same time as the check
@@ -1768,8 +1518,7 @@ TestDlOfdmaPhyPuncturing::CheckPhyState(Ptr<OfdmaSpectrumWifiPhy<HePhy>> phy,
 }
 
 void
-TestDlOfdmaPhyPuncturing::DoCheckPhyState(Ptr<OfdmaSpectrumWifiPhy<HePhy>> phy,
-                                          WifiPhyState expectedState)
+TestDlOfdmaPhyPuncturing::DoCheckPhyState(Ptr<OfdmaSpectrumWifiPhy> phy, WifiPhyState expectedState)
 {
     WifiPhyState currentState;
     PointerValue ptr;
@@ -1809,11 +1558,10 @@ TestDlOfdmaPhyPuncturing::DoSetup()
     apDev->SetPhy(m_phyAp);
     apNode->AggregateObject(apMobility);
     apNode->AddDevice(apDev);
-    apDev->SetStandard(WIFI_STANDARD_80211ax);
 
     Ptr<Node> sta1Node = CreateObject<Node>();
     Ptr<WifiNetDevice> sta1Dev = CreateObject<WifiNetDevice>();
-    m_phySta1 = CreateObject<OfdmaSpectrumWifiPhy<HePhy>>(1);
+    m_phySta1 = CreateObject<OfdmaSpectrumWifiPhy>(1);
     Ptr<InterferenceHelper> sta1InterferenceHelper = CreateObject<InterferenceHelper>();
     m_phySta1->SetInterferenceHelper(sta1InterferenceHelper);
     Ptr<ErrorRateModel> sta1ErrorModel = CreateObject<NistErrorRateModel>();
@@ -1829,11 +1577,10 @@ TestDlOfdmaPhyPuncturing::DoSetup()
     sta1Dev->SetPhy(m_phySta1);
     sta1Node->AggregateObject(sta1Mobility);
     sta1Node->AddDevice(sta1Dev);
-    sta1Dev->SetStandard(WIFI_STANDARD_80211ax);
 
     Ptr<Node> sta2Node = CreateObject<Node>();
     Ptr<WifiNetDevice> sta2Dev = CreateObject<WifiNetDevice>();
-    m_phySta2 = CreateObject<OfdmaSpectrumWifiPhy<HePhy>>(2);
+    m_phySta2 = CreateObject<OfdmaSpectrumWifiPhy>(2);
     Ptr<InterferenceHelper> sta2InterferenceHelper = CreateObject<InterferenceHelper>();
     m_phySta2->SetInterferenceHelper(sta2InterferenceHelper);
     Ptr<ErrorRateModel> sta2ErrorModel = CreateObject<NistErrorRateModel>();
@@ -1849,7 +1596,6 @@ TestDlOfdmaPhyPuncturing::DoSetup()
     sta2Dev->SetPhy(m_phySta2);
     sta2Node->AggregateObject(sta2Mobility);
     sta2Node->AddDevice(sta2Dev);
-    sta2Dev->SetStandard(WIFI_STANDARD_80211ax);
 
     Ptr<Node> interfererNode = CreateObject<Node>();
     Ptr<NonCommunicatingNetDevice> interfererDev = CreateObject<NonCommunicatingNetDevice>();
@@ -1953,7 +1699,7 @@ TestDlOfdmaPhyPuncturing::RunOne()
 
     if (m_indexSubchannel < 2) // interference in RU 1
     {
-        // One PSDU of 1000 bytes should have been unsuccessfully received by STA 1
+        // One PSDU of 1000 bytes should have been unsuccessfuly received by STA 1
         Simulator::Schedule(Seconds(1.1),
                             &TestDlOfdmaPhyPuncturing::CheckResultsSta1,
                             this,
@@ -1977,7 +1723,7 @@ TestDlOfdmaPhyPuncturing::RunOne()
                             1,
                             0,
                             1000);
-        // One PSDU of 1500 bytes should have been unsuccessfully received by STA 2
+        // One PSDU of 1500 bytes should have been unsuccessfuly received by STA 2
         Simulator::Schedule(Seconds(1.1),
                             &TestDlOfdmaPhyPuncturing::CheckResultsSta2,
                             this,
@@ -2125,9 +1871,9 @@ class TestUlOfdmaPpduUid : public TestCase
      */
     void CheckUid(uint16_t staId, uint64_t expectedUid);
 
-    Ptr<OfdmaSpectrumWifiPhy<HePhy>> m_phyAp;   ///< PHY of AP
-    Ptr<OfdmaSpectrumWifiPhy<HePhy>> m_phySta1; ///< PHY of STA 1
-    Ptr<OfdmaSpectrumWifiPhy<HePhy>> m_phySta2; ///< PHY of STA 2
+    Ptr<OfdmaSpectrumWifiPhy> m_phyAp;   ///< PHY of AP
+    Ptr<OfdmaSpectrumWifiPhy> m_phySta1; ///< PHY of STA 1
+    Ptr<OfdmaSpectrumWifiPhy> m_phySta2; ///< PHY of STA 2
 
     uint64_t m_ppduUidAp;   ///< UID of PPDU transmitted by AP
     uint64_t m_ppduUidSta1; ///< UID of PPDU transmitted by STA1
@@ -2159,7 +1905,7 @@ TestUlOfdmaPpduUid::DoSetup()
 
     Ptr<Node> apNode = CreateObject<Node>();
     Ptr<WifiNetDevice> apDev = CreateObject<WifiNetDevice>();
-    m_phyAp = CreateObject<OfdmaSpectrumWifiPhy<HePhy>>(0);
+    m_phyAp = CreateObject<OfdmaSpectrumWifiPhy>(0);
     Ptr<InterferenceHelper> apInterferenceHelper = CreateObject<InterferenceHelper>();
     m_phyAp->SetInterferenceHelper(apInterferenceHelper);
     Ptr<ErrorRateModel> apErrorModel = CreateObject<NistErrorRateModel>();
@@ -2187,7 +1933,7 @@ TestUlOfdmaPpduUid::DoSetup()
 
     Ptr<Node> sta1Node = CreateObject<Node>();
     Ptr<WifiNetDevice> sta1Dev = CreateObject<WifiNetDevice>();
-    m_phySta1 = CreateObject<OfdmaSpectrumWifiPhy<HePhy>>(1);
+    m_phySta1 = CreateObject<OfdmaSpectrumWifiPhy>(1);
     Ptr<InterferenceHelper> sta1InterferenceHelper = CreateObject<InterferenceHelper>();
     m_phySta1->SetInterferenceHelper(sta1InterferenceHelper);
     Ptr<ErrorRateModel> sta1ErrorModel = CreateObject<NistErrorRateModel>();
@@ -2207,7 +1953,7 @@ TestUlOfdmaPpduUid::DoSetup()
 
     Ptr<Node> sta2Node = CreateObject<Node>();
     Ptr<WifiNetDevice> sta2Dev = CreateObject<WifiNetDevice>();
-    m_phySta2 = CreateObject<OfdmaSpectrumWifiPhy<HePhy>>(2);
+    m_phySta2 = CreateObject<OfdmaSpectrumWifiPhy>(2);
     Ptr<InterferenceHelper> sta2InterferenceHelper = CreateObject<InterferenceHelper>();
     m_phySta2->SetInterferenceHelper(sta2InterferenceHelper);
     Ptr<ErrorRateModel> sta2ErrorModel = CreateObject<NistErrorRateModel>();
@@ -2309,13 +2055,13 @@ TestUlOfdmaPpduUid::SendMuPpdu()
                           false};
 
     uint16_t rxStaId1 = 1;
-    HeRu::RuSpec ru1(RuType::RU_106_TONE, 1, true);
+    HeRu::RuSpec ru1(HeRu::RU_106_TONE, 1, true);
     txVector.SetRu(ru1, rxStaId1);
     txVector.SetMode(HePhy::GetHeMcs7(), rxStaId1);
     txVector.SetNss(1, rxStaId1);
 
     uint16_t rxStaId2 = 2;
-    HeRu::RuSpec ru2(RuType::RU_106_TONE, 2, true);
+    HeRu::RuSpec ru2(HeRu::RU_106_TONE, 2, true);
     txVector.SetRu(ru2, rxStaId2);
     txVector.SetMode(HePhy::GetHeMcs9(), rxStaId2);
     txVector.SetNss(1, rxStaId2);
@@ -2363,7 +2109,7 @@ TestUlOfdmaPpduUid::SendTbPpdu()
     WifiTxVector trigVector{txVector2};
 
     uint16_t rxStaId1 = 1;
-    HeRu::RuSpec ru1(RuType::RU_106_TONE, 1, false);
+    HeRu::RuSpec ru1(HeRu::RU_106_TONE, 1, false);
     txVector1.SetRu(ru1, rxStaId1);
     txVector1.SetMode(HePhy::GetHeMcs7(), rxStaId1);
     txVector1.SetNss(1, rxStaId1);
@@ -2381,7 +2127,7 @@ TestUlOfdmaPpduUid::SendTbPpdu()
     psdus1.insert(std::make_pair(rxStaId1, psdu1));
 
     uint16_t rxStaId2 = 2;
-    HeRu::RuSpec ru2(RuType::RU_106_TONE, 2, false);
+    HeRu::RuSpec ru2(HeRu::RU_106_TONE, 2, false);
     txVector2.SetRu(ru2, rxStaId2);
     txVector2.SetMode(HePhy::GetHeMcs9(), rxStaId2);
     txVector2.SetNss(1, rxStaId2);
@@ -2398,16 +2144,14 @@ TestUlOfdmaPpduUid::SendTbPpdu()
     auto psdu2 = Create<WifiPsdu>(pkt2, hdr2);
     psdus2.insert(std::make_pair(rxStaId2, psdu2));
 
-    const auto txDuration1 =
-        OfdmaSpectrumWifiPhy<HePhy>::CalculateTxDuration(psdu1->GetSize(),
-                                                         txVector1,
-                                                         m_phySta1->GetPhyBand(),
-                                                         rxStaId1);
-    const auto txDuration2 =
-        OfdmaSpectrumWifiPhy<HePhy>::CalculateTxDuration(psdu2->GetSize(),
-                                                         txVector2,
-                                                         m_phySta1->GetPhyBand(),
-                                                         rxStaId2);
+    const auto txDuration1 = OfdmaSpectrumWifiPhy::CalculateTxDuration(psdu1->GetSize(),
+                                                                       txVector1,
+                                                                       m_phySta1->GetPhyBand(),
+                                                                       rxStaId1);
+    const auto txDuration2 = OfdmaSpectrumWifiPhy::CalculateTxDuration(psdu2->GetSize(),
+                                                                       txVector2,
+                                                                       m_phySta1->GetPhyBand(),
+                                                                       rxStaId2);
     const auto txDuration = std::max(txDuration1, txDuration2);
 
     txVector1.SetLength(
@@ -2417,8 +2161,8 @@ TestUlOfdmaPpduUid::SendTbPpdu()
         HePhy::ConvertHeTbPpduDurationToLSigLength(txDuration, txVector2, m_phySta2->GetPhyBand())
             .first);
 
-    auto phyAp = m_phyAp->GetPhyEntity();
-    phyAp->SetTrigVector(trigVector, txDuration);
+    auto hePhyAp = DynamicCast<HePhy>(m_phyAp->GetPhyEntity(WIFI_MOD_CLASS_HE));
+    hePhyAp->SetTrigVector(trigVector, txDuration);
 
     m_phySta1->Send(psdus1, txVector1);
     m_phySta2->Send(psdus2, txVector2);
@@ -2572,7 +2316,7 @@ class TestMultipleHeTbPreambles : public TestCase
      */
     void CheckBytesDropped(size_t expectedBytesDropped);
 
-    Ptr<OfdmaSpectrumWifiPhy<HePhy>> m_phy; ///< Phy
+    Ptr<OfdmaSpectrumWifiPhy> m_phy; ///< Phy
 
     uint64_t m_totalBytesDropped; ///< total number of dropped bytes
     WifiTxVector m_trigVector;    ///< TRIGVECTOR
@@ -2657,7 +2401,7 @@ TestMultipleHeTbPreambles::RxHeTbPpdu(uint64_t uid,
                           false,
                           false};
 
-    HeRu::RuSpec ru(RuType::RU_106_TONE, staId, false);
+    HeRu::RuSpec ru(HeRu::RU_106_TONE, staId, false);
     txVector.SetRu(ru, staId);
     txVector.SetMode(HePhy::GetHeMcs7(), staId);
     txVector.SetNss(1, staId);
@@ -2673,10 +2417,10 @@ TestMultipleHeTbPreambles::RxHeTbPpdu(uint64_t uid,
     auto psdu = Create<WifiPsdu>(pkt, hdr);
     psdus.insert(std::make_pair(staId, psdu));
 
-    auto ppduDuration = OfdmaSpectrumWifiPhy<HePhy>::CalculateTxDuration(psdu->GetSize(),
-                                                                         txVector,
-                                                                         m_phy->GetPhyBand(),
-                                                                         staId);
+    auto ppduDuration = OfdmaSpectrumWifiPhy::CalculateTxDuration(psdu->GetSize(),
+                                                                  txVector,
+                                                                  m_phy->GetPhyBand(),
+                                                                  staId);
     auto ppdu = Create<HePpdu>(psdus,
                                txVector,
                                m_phy->GetOperatingChannel(),
@@ -2685,11 +2429,11 @@ TestMultipleHeTbPreambles::RxHeTbPpdu(uint64_t uid,
                                HePpdu::PSD_NON_HE_PORTION);
 
     // Send non-OFDMA part
-    const auto nonOfdmaDuration = m_phy->GetPhyEntity()->CalculateNonHeDurationForHeTb(txVector);
+    const auto nonOfdmaDuration = m_phy->GetHePhy()->CalculateNonHeDurationForHeTb(txVector);
     const auto centerFrequency =
-        m_phy->GetPhyEntity()->GetCenterFrequenciesForNonHePart(ppdu, staId).front();
-    auto ruWidth = WifiRu::GetBandwidth(WifiRu::GetRuType(txVector.GetRu(staId)));
-    auto channelWidth = ruWidth < MHz_u{20} ? MHz_u{20} : ruWidth;
+        m_phy->GetHePhy()->GetCenterFrequenciesForNonHePart(ppdu, staId).front();
+    MHz_u ruWidth = HeRu::GetBandwidth(txVector.GetRu(staId).GetRuType());
+    MHz_u channelWidth = ruWidth < MHz_u{20} ? MHz_u{20} : ruWidth;
     Ptr<SpectrumValue> rxPsd = WifiSpectrumValueHelper::CreateHeOfdmTxPowerSpectralDensity(
         centerFrequency,
         channelWidth,
@@ -2706,7 +2450,7 @@ TestMultipleHeTbPreambles::RxHeTbPpdu(uint64_t uid,
         HePhy::ConvertHeTbPpduDurationToLSigLength(ppduDuration, txVector, m_phy->GetPhyBand());
     txVector.SetLength(length);
     m_trigVector.SetLength(length);
-    auto hePhy = std::dynamic_pointer_cast<HePhy>(m_phy->GetLatestPhyEntity());
+    auto hePhy = DynamicCast<HePhy>(m_phy->GetLatestPhyEntity());
     hePhy->SetTrigVector(m_trigVector, ppduDuration);
     ppdu->ResetTxVector();
     m_phy->StartRx(rxParams, nullptr);
@@ -2714,7 +2458,7 @@ TestMultipleHeTbPreambles::RxHeTbPpdu(uint64_t uid,
     // Schedule OFDMA part
     auto ppduOfdma = DynamicCast<HePpdu>(ppdu->Copy()); // since flag will be modified
     ppduOfdma->SetTxPsdFlag(HePpdu::PSD_HE_PORTION);
-    const auto band = m_phy->GetPhyEntity()->GetRuBandForRx(txVector, staId);
+    const auto band = m_phy->GetHePhy()->GetRuBandForRx(txVector, staId);
     auto rxPsdOfdma =
         WifiSpectrumValueHelper::CreateHeMuOfdmTxPowerSpectralDensity({DEFAULT_FREQUENCY},
                                                                       DEFAULT_CHANNEL_WIDTH,
@@ -2754,7 +2498,7 @@ TestMultipleHeTbPreambles::DoSetup()
     Ptr<Node> node = CreateObject<Node>();
     Ptr<WifiNetDevice> dev = CreateObject<WifiNetDevice>();
     dev->SetStandard(WIFI_STANDARD_80211ax);
-    m_phy = CreateObject<OfdmaSpectrumWifiPhy<HePhy>>(0);
+    m_phy = CreateObject<OfdmaSpectrumWifiPhy>(0);
     Ptr<InterferenceHelper> interferenceHelper = CreateObject<InterferenceHelper>();
     Ptr<ErrorRateModel> error = CreateObject<NistErrorRateModel>();
     auto mac = CreateObjectWithAttributes<ApWifiMac>(
@@ -3079,9 +2823,9 @@ class OfdmaTestPhyListener : public ns3::WifiPhyListener
         m_lastRxSuccess = true;
     }
 
-    void NotifyRxEndError(const WifiTxVector& txVector) override
+    void NotifyRxEndError() override
     {
-        NS_LOG_FUNCTION(this << txVector);
+        NS_LOG_FUNCTION(this);
         m_lastRxEnd = Simulator::Now();
         ++m_notifyRxEnd;
         m_lastRxSuccess = false;
@@ -3190,7 +2934,6 @@ class OfdmaTestPhyListener : public ns3::WifiPhyListener
  *
  * @brief UL-OFDMA PHY test
  */
-template <typename LatestPhyEntityType>
 class TestUlOfdmaPhyTransmission : public TestCase
 {
   public:
@@ -3206,6 +2949,7 @@ class TestUlOfdmaPhyTransmission : public TestCase
     };
 
     TestUlOfdmaPhyTransmission();
+    ~TestUlOfdmaPhyTransmission() override;
 
   private:
     void DoSetup() override;
@@ -3213,13 +2957,15 @@ class TestUlOfdmaPhyTransmission : public TestCase
     void DoRun() override;
 
     /**
-     * Get TXVECTOR for HE PPDU.
+     * Get TXVECTOR for HE TB PPDU.
      * @param txStaId the ID of the TX STA
      * @param index the RU index used for the transmission
      * @param bssColor the BSS color of the TX STA
      * @return the TXVECTOR for HE TB PPDU
      */
-    WifiTxVector GetTxVectorForTbPpdu(uint16_t txStaId, std::size_t index, uint8_t bssColor) const;
+    WifiTxVector GetTxVectorForHeTbPpdu(uint16_t txStaId,
+                                        std::size_t index,
+                                        uint8_t bssColor) const;
     /**
      * Set TRIGVECTOR for HE TB PPDU
      *
@@ -3236,12 +2982,12 @@ class TestUlOfdmaPhyTransmission : public TestCase
      * @param bssColor the BSS color of the TX STA
      * @param incrementUid whether UID shall be incremented
      */
-    void SendTbPpdu(uint16_t txStaId,
-                    std::size_t index,
-                    std::size_t payloadSize,
-                    uint64_t uid,
-                    uint8_t bssColor,
-                    bool incrementUid);
+    void SendHeTbPpdu(uint16_t txStaId,
+                      std::size_t index,
+                      std::size_t payloadSize,
+                      uint64_t uid,
+                      uint8_t bssColor,
+                      bool incrementUid);
 
     /**
      * Send HE SU PPDU function
@@ -3250,7 +2996,7 @@ class TestUlOfdmaPhyTransmission : public TestCase
      * @param uid the UID of the trigger frame that is initiating this transmission
      * @param bssColor the BSS color of the TX STA
      */
-    void SendSuPpdu(uint16_t txStaId, std::size_t payloadSize, uint64_t uid, uint8_t bssColor);
+    void SendHeSuPpdu(uint16_t txStaId, std::size_t payloadSize, uint64_t uid, uint8_t bssColor);
 
     /**
      * Set the BSS color
@@ -3308,7 +3054,7 @@ class TestUlOfdmaPhyTransmission : public TestCase
      * @param band the indices of the band over which the power is measured
      * @param expectedRxPower the expected received power
      */
-    void CheckNonOfdmaRxPower(Ptr<OfdmaSpectrumWifiPhy<LatestPhyEntityType>> phy,
+    void CheckNonOfdmaRxPower(Ptr<OfdmaSpectrumWifiPhy> phy,
                               WifiSpectrumBandInfo band,
                               Watt_u expectedRxPower);
     /**
@@ -3317,7 +3063,7 @@ class TestUlOfdmaPhyTransmission : public TestCase
      * @param band the indices of the band over which the power is measured
      * @param expectedRxPower the expected received power
      */
-    void CheckOfdmaRxPower(Ptr<OfdmaSpectrumWifiPhy<LatestPhyEntityType>> phy,
+    void CheckOfdmaRxPower(Ptr<OfdmaSpectrumWifiPhy> phy,
                            WifiSpectrumBandInfo band,
                            Watt_u expectedRxPower);
 
@@ -3331,11 +3077,9 @@ class TestUlOfdmaPhyTransmission : public TestCase
      * @param phy the PHY
      * @param expectedState the expected state of the PHY
      */
-    void CheckPhyState(Ptr<OfdmaSpectrumWifiPhy<LatestPhyEntityType>> phy,
-                       WifiPhyState expectedState);
+    void CheckPhyState(Ptr<OfdmaSpectrumWifiPhy> phy, WifiPhyState expectedState);
     /// @copydoc CheckPhyState
-    void DoCheckPhyState(Ptr<OfdmaSpectrumWifiPhy<LatestPhyEntityType>> phy,
-                         WifiPhyState expectedState);
+    void DoCheckPhyState(Ptr<OfdmaSpectrumWifiPhy> phy, WifiPhyState expectedState);
 
     /**
      * Check the the number of RX start notifications at the AP as well as the last time a RX start
@@ -3433,66 +3177,63 @@ class TestUlOfdmaPhyTransmission : public TestCase
      */
     void LogScenario(std::string log) const;
 
-    WifiModulationClass m_modClass; ///< the modulation class to consider for the test
-
-    Ptr<OfdmaSpectrumWifiPhy<LatestPhyEntityType>> m_phyAp;   ///< PHY of AP
-    Ptr<OfdmaSpectrumWifiPhy<LatestPhyEntityType>> m_phySta1; ///< PHY of STA 1
-    Ptr<OfdmaSpectrumWifiPhy<LatestPhyEntityType>> m_phySta2; ///< PHY of STA 2
-    Ptr<OfdmaSpectrumWifiPhy<LatestPhyEntityType>> m_phySta3; ///< PHY of STA 3
+    Ptr<OfdmaSpectrumWifiPhy> m_phyAp;   ///< PHY of AP
+    Ptr<OfdmaSpectrumWifiPhy> m_phySta1; ///< PHY of STA 1
+    Ptr<OfdmaSpectrumWifiPhy> m_phySta2; ///< PHY of STA 2
+    Ptr<OfdmaSpectrumWifiPhy> m_phySta3; ///< PHY of STA 3
 
     std::shared_ptr<OfdmaTestPhyListener>
         m_apPhyStateListener; ///< listener for AP PHY state transitions
 
     Ptr<WaveformGenerator> m_phyInterferer; ///< PHY of interferer
 
-    uint32_t m_countRxSuccessFromSta1{0}; ///< count RX success from STA 1
-    uint32_t m_countRxSuccessFromSta2{0}; ///< count RX success from STA 2
-    uint32_t m_countRxFailureFromSta1{0}; ///< count RX failure from STA 1
-    uint32_t m_countRxFailureFromSta2{0}; ///< count RX failure from STA 2
-    uint32_t m_countRxBytesFromSta1{0};   ///< count RX bytes from STA 1
-    uint32_t m_countRxBytesFromSta2{0};   ///< count RX bytes from STA 2
+    uint32_t m_countRxSuccessFromSta1; ///< count RX success from STA 1
+    uint32_t m_countRxSuccessFromSta2; ///< count RX success from STA 2
+    uint32_t m_countRxFailureFromSta1; ///< count RX failure from STA 1
+    uint32_t m_countRxFailureFromSta2; ///< count RX failure from STA 2
+    uint32_t m_countRxBytesFromSta1;   ///< count RX bytes from STA 1
+    uint32_t m_countRxBytesFromSta2;   ///< count RX bytes from STA 2
 
-    MHz_u m_frequency{DEFAULT_FREQUENCY};        ///< frequency
-    MHz_u m_channelWidth{DEFAULT_CHANNEL_WIDTH}; ///< channel width
-    Time m_expectedPpduDuration;                 ///< expected duration to send MU PPDU
+    MHz_u m_frequency;           ///< frequency
+    MHz_u m_channelWidth;        ///< channel width
+    Time m_expectedPpduDuration; ///< expected duration to send MU PPDU
 };
 
-template <typename LatestPhyEntityType>
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::TestUlOfdmaPhyTransmission()
-    : TestCase{std::string("UL-OFDMA PHY test for ") +
-               ((Demangle(typeid(LatestPhyEntityType).name()).find("He") != std::string::npos)
-                    ? "HE"
-                    : "EHT")},
-      m_modClass{(Demangle(typeid(LatestPhyEntityType).name()).find("He") != std::string::npos)
-                     ? WIFI_MOD_CLASS_HE
-                     : WIFI_MOD_CLASS_EHT},
-      m_expectedPpduDuration{NanoSeconds(271200)}
+TestUlOfdmaPhyTransmission::TestUlOfdmaPhyTransmission()
+    : TestCase("UL-OFDMA PHY test"),
+      m_countRxSuccessFromSta1(0),
+      m_countRxSuccessFromSta2(0),
+      m_countRxFailureFromSta1(0),
+      m_countRxFailureFromSta2(0),
+      m_countRxBytesFromSta1(0),
+      m_countRxBytesFromSta2(0),
+      m_frequency(DEFAULT_FREQUENCY),
+      m_channelWidth(DEFAULT_CHANNEL_WIDTH),
+      m_expectedPpduDuration(NanoSeconds(271200))
 {
 }
 
-template <typename LatestPhyEntityType>
 void
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SendSuPpdu(uint16_t txStaId,
-                                                            std::size_t payloadSize,
-                                                            uint64_t uid,
-                                                            uint8_t bssColor)
+TestUlOfdmaPhyTransmission::SendHeSuPpdu(uint16_t txStaId,
+                                         std::size_t payloadSize,
+                                         uint64_t uid,
+                                         uint8_t bssColor)
 {
     NS_LOG_FUNCTION(this << txStaId << payloadSize << uid << +bssColor);
     WifiConstPsduMap psdus;
 
-    WifiTxVector txVector{
-        (m_modClass == WIFI_MOD_CLASS_HE) ? HePhy::GetHeMcs7() : EhtPhy::GetEhtMcs7(),
-        0,
-        (m_modClass == WIFI_MOD_CLASS_HE) ? WIFI_PREAMBLE_HE_SU : WIFI_PREAMBLE_EHT_MU,
-        NanoSeconds(800),
-        1,
-        1,
-        0,
-        m_channelWidth,
-        false,
-        false,
-        false,
-        bssColor};
+    WifiTxVector txVector{HePhy::GetHeMcs7(),
+                          0,
+                          WIFI_PREAMBLE_HE_SU,
+                          NanoSeconds(800),
+                          1,
+                          1,
+                          0,
+                          m_channelWidth,
+                          false,
+                          false,
+                          false,
+                          bssColor};
 
     auto pkt = Create<Packet>(payloadSize);
     WifiMacHeader hdr;
@@ -3506,7 +3247,7 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SendSuPpdu(uint16_t txStaId,
     auto psdu = Create<WifiPsdu>(pkt, hdr);
     psdus.insert(std::make_pair(SU_STA_ID, psdu));
 
-    Ptr<OfdmaSpectrumWifiPhy<LatestPhyEntityType>> phy;
+    Ptr<OfdmaSpectrumWifiPhy> phy;
     if (txStaId == 1)
     {
         phy = m_phySta1;
@@ -3527,158 +3268,114 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SendSuPpdu(uint16_t txStaId,
     phy->Send(psdus, txVector);
 }
 
-template <typename LatestPhyEntityType>
 WifiTxVector
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::GetTxVectorForTbPpdu(uint16_t txStaId,
-                                                                      std::size_t index,
-                                                                      uint8_t bssColor) const
+TestUlOfdmaPhyTransmission::GetTxVectorForHeTbPpdu(uint16_t txStaId,
+                                                   std::size_t index,
+                                                   uint8_t bssColor) const
 {
-    WifiTxVector txVector{
-        (m_modClass == WIFI_MOD_CLASS_HE) ? HePhy::GetHeMcs7() : EhtPhy::GetEhtMcs7(),
-        0,
-        (m_modClass == WIFI_MOD_CLASS_HE) ? WIFI_PREAMBLE_HE_TB : WIFI_PREAMBLE_EHT_TB,
-        NanoSeconds(1600),
-        1,
-        1,
-        0,
-        m_channelWidth,
-        false,
-        false,
-        false,
-        bssColor};
-    if (m_modClass == WIFI_MOD_CLASS_EHT)
-    {
-        txVector.SetEhtPpduType(0);
-    }
-    auto ruType{RuType::RU_TYPE_MAX};
+    WifiTxVector txVector{HePhy::GetHeMcs7(),
+                          0,
+                          WIFI_PREAMBLE_HE_TB,
+                          NanoSeconds(1600),
+                          1,
+                          1,
+                          0,
+                          m_channelWidth,
+                          false,
+                          false,
+                          false,
+                          bssColor};
+
+    auto ruType = HeRu::RU_106_TONE;
     if (m_channelWidth == MHz_u{20})
     {
-        ruType = RuType::RU_106_TONE;
+        ruType = HeRu::RU_106_TONE;
     }
     else if (m_channelWidth == MHz_u{40})
     {
-        ruType = RuType::RU_242_TONE;
+        ruType = HeRu::RU_242_TONE;
     }
     else if (m_channelWidth == MHz_u{80})
     {
-        ruType = RuType::RU_484_TONE;
+        ruType = HeRu::RU_484_TONE;
     }
     else if (m_channelWidth == MHz_u{160})
     {
-        ruType = RuType::RU_996_TONE;
-    }
-    else if (m_channelWidth == MHz_u{320})
-    {
-        ruType = RuType::RU_2x996_TONE;
+        ruType = HeRu::RU_996_TONE;
     }
     else
     {
-        NS_ASSERT_MSG(false, "Unsupported channel width: " << m_channelWidth);
+        NS_ASSERT_MSG(false, "Unsupported channel width");
     }
 
-    auto primary80MHzOrLow80MHz{true};
-    auto primary160MHz{true};
-    if (m_channelWidth > MHz_u{80})
+    auto primary80MHz = true;
+    if (m_channelWidth == MHz_u{160} && index == 2)
     {
-        if (m_modClass == WIFI_MOD_CLASS_HE)
-        {
-            primary80MHzOrLow80MHz = HeRu::GetPrimary80MHzFlag(m_channelWidth, ruType, index, 0);
-            index = HeRu::GetIndexIn80MHzSegment(m_channelWidth, ruType, index);
-        }
-        else
-        {
-            const auto& [p160, p80OrLow80] =
-                EhtRu::GetPrimaryFlags(m_channelWidth, ruType, index, 0);
-            primary160MHz = p160;
-            primary80MHzOrLow80MHz = p80OrLow80;
-            index = EhtRu::GetIndexIn80MHzSegment(m_channelWidth, ruType, index);
-        }
+        primary80MHz = false;
+        index = 1;
     }
-    const auto ru =
-        (m_modClass == WIFI_MOD_CLASS_HE)
-            ? WifiRu::RuSpec(HeRu::RuSpec{ruType, index, primary80MHzOrLow80MHz})
-            : WifiRu::RuSpec(EhtRu::RuSpec{ruType, index, primary160MHz, primary80MHzOrLow80MHz});
+    HeRu::RuSpec ru(ruType, index, primary80MHz);
     txVector.SetRu(ru, txStaId);
-    txVector.SetMode((m_modClass == WIFI_MOD_CLASS_HE) ? HePhy::GetHeMcs7() : EhtPhy::GetEhtMcs7(),
-                     txStaId);
+    txVector.SetMode(HePhy::GetHeMcs7(), txStaId);
     txVector.SetNss(1, txStaId);
     return txVector;
 }
 
-template <typename LatestPhyEntityType>
 void
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SetTrigVector(uint8_t bssColor,
-                                                               TrigVectorInfo error)
+TestUlOfdmaPhyTransmission::SetTrigVector(uint8_t bssColor, TrigVectorInfo error)
 {
     auto channelWidth = m_channelWidth;
     if (error == CHANNEL_WIDTH)
     {
-        channelWidth =
-            (channelWidth >= GetMaximumChannelWidth(m_modClass) ? MHz_u{20} : channelWidth * 2);
+        channelWidth = (channelWidth == MHz_u{160} ? MHz_u{20} : channelWidth * 2);
     }
 
-    WifiTxVector txVector(
-        (m_modClass == WIFI_MOD_CLASS_HE) ? HePhy::GetHeMcs7() : EhtPhy::GetEhtMcs7(),
-        0,
-        (m_modClass == WIFI_MOD_CLASS_HE) ? WIFI_PREAMBLE_HE_TB : WIFI_PREAMBLE_EHT_TB,
-        NanoSeconds(1600),
-        1,
-        1,
-        0,
-        channelWidth,
-        false,
-        false,
-        false,
-        bssColor);
+    WifiTxVector txVector(HePhy::GetHeMcs7(),
+                          0,
+                          WIFI_PREAMBLE_HE_TB,
+                          NanoSeconds(1600),
+                          1,
+                          1,
+                          0,
+                          channelWidth,
+                          false,
+                          false,
+                          false,
+                          bssColor);
 
-    RuType ruType = RuType::RU_106_TONE;
+    HeRu::RuType ruType = HeRu::RU_106_TONE;
     if (channelWidth == MHz_u{20})
     {
-        ruType = RuType::RU_106_TONE;
+        ruType = HeRu::RU_106_TONE;
     }
     else if (channelWidth == MHz_u{40})
     {
-        ruType = RuType::RU_242_TONE;
+        ruType = HeRu::RU_242_TONE;
     }
     else if (channelWidth == MHz_u{80})
     {
-        ruType = RuType::RU_484_TONE;
+        ruType = HeRu::RU_484_TONE;
     }
     else if (channelWidth == MHz_u{160})
     {
-        ruType = RuType::RU_996_TONE;
-    }
-    else if (channelWidth == MHz_u{320})
-    {
-        ruType = RuType::RU_2x996_TONE;
+        ruType = HeRu::RU_996_TONE;
     }
     else
     {
-        NS_ASSERT_MSG(false, "Unsupported channel width: " << channelWidth);
+        NS_ASSERT_MSG(false, "Unsupported channel width");
     }
 
     uint16_t aid1 = (error == AID ? 3 : 1);
     uint16_t aid2 = (error == AID ? 4 : 2);
 
-    const auto ru1 = (m_modClass == WIFI_MOD_CLASS_HE)
-                         ? WifiRu::RuSpec(HeRu::RuSpec{ruType, 1, true})
-                         : WifiRu::RuSpec(EhtRu::RuSpec{ruType, 1, true, true});
+    HeRu::RuSpec ru1(ruType, 1, true);
     txVector.SetRu(ru1, aid1);
-    txVector.SetMode((m_modClass == WIFI_MOD_CLASS_HE) ? HePhy::GetHeMcs7() : EhtPhy::GetEhtMcs7(),
-                     aid1);
+    txVector.SetMode(HePhy::GetHeMcs7(), aid1);
     txVector.SetNss(1, aid1);
 
-    const auto ru2 = (m_modClass == WIFI_MOD_CLASS_HE)
-                         ? WifiRu::RuSpec(HeRu::RuSpec{ruType,
-                                                       (channelWidth == MHz_u{160} ? 1ULL : 2ULL),
-                                                       (channelWidth != MHz_u{160})})
-                         : WifiRu::RuSpec(EhtRu::RuSpec{ruType,
-                                                        (channelWidth == MHz_u{320} ? 1ULL : 2ULL),
-                                                        (channelWidth != MHz_u{320}),
-                                                        true});
+    HeRu::RuSpec ru2(ruType, (channelWidth == MHz_u{160} ? 1 : 2), (channelWidth != MHz_u{160}));
     txVector.SetRu(ru2, aid2);
-    txVector.SetMode((m_modClass == WIFI_MOD_CLASS_HE) ? HePhy::GetHeMcs7() : EhtPhy::GetEhtMcs7(),
-                     aid2);
+    txVector.SetMode(HePhy::GetHeMcs7(), aid2);
     txVector.SetNss(1, aid2);
 
     uint16_t length;
@@ -3691,18 +3388,17 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SetTrigVector(uint8_t bssColor,
         ++length;
     }
     txVector.SetLength(length);
-    auto phyAp = m_phyAp->GetPhyEntity();
-    phyAp->SetTrigVector(txVector, m_expectedPpduDuration);
+    auto hePhyAp = DynamicCast<HePhy>(m_phyAp->GetLatestPhyEntity());
+    hePhyAp->SetTrigVector(txVector, m_expectedPpduDuration);
 }
 
-template <typename LatestPhyEntityType>
 void
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SendTbPpdu(uint16_t txStaId,
-                                                            std::size_t index,
-                                                            std::size_t payloadSize,
-                                                            uint64_t uid,
-                                                            uint8_t bssColor,
-                                                            bool incrementUid)
+TestUlOfdmaPhyTransmission::SendHeTbPpdu(uint16_t txStaId,
+                                         std::size_t index,
+                                         std::size_t payloadSize,
+                                         uint64_t uid,
+                                         uint8_t bssColor,
+                                         bool incrementUid)
 {
     NS_LOG_FUNCTION(this << txStaId << index << payloadSize << uid << +bssColor << (incrementUid));
     WifiConstPsduMap psdus;
@@ -3712,7 +3408,7 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SendTbPpdu(uint16_t txStaId,
         ++uid;
     }
 
-    auto txVector = GetTxVectorForTbPpdu(txStaId, index, bssColor);
+    WifiTxVector txVector = GetTxVectorForHeTbPpdu(txStaId, index, bssColor);
     Ptr<Packet> pkt = Create<Packet>(payloadSize);
     WifiMacHeader hdr;
     hdr.SetType(WIFI_MAC_QOSDATA);
@@ -3725,7 +3421,7 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SendTbPpdu(uint16_t txStaId,
     Ptr<WifiPsdu> psdu = Create<WifiPsdu>(pkt, hdr);
     psdus.insert(std::make_pair(txStaId, psdu));
 
-    Ptr<OfdmaSpectrumWifiPhy<LatestPhyEntityType>> phy;
+    Ptr<OfdmaSpectrumWifiPhy> phy;
     if (txStaId == 1)
     {
         phy = m_phySta1;
@@ -3739,11 +3435,10 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SendTbPpdu(uint16_t txStaId,
         phy = m_phySta3;
     }
 
-    Time txDuration =
-        OfdmaSpectrumWifiPhy<LatestPhyEntityType>::CalculateTxDuration(psdu->GetSize(),
-                                                                       txVector,
-                                                                       phy->GetPhyBand(),
-                                                                       txStaId);
+    Time txDuration = OfdmaSpectrumWifiPhy::CalculateTxDuration(psdu->GetSize(),
+                                                                txVector,
+                                                                phy->GetPhyBand(),
+                                                                txStaId);
     txVector.SetLength(
         HePhy::ConvertHeTbPpduDurationToLSigLength(txDuration, txVector, phy->GetPhyBand()).first);
 
@@ -3751,35 +3446,31 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SendTbPpdu(uint16_t txStaId,
     phy->Send(psdus, txVector);
 }
 
-template <typename LatestPhyEntityType>
 void
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::GenerateInterference(
-    Ptr<SpectrumValue> interferencePsd,
-    Time duration)
+TestUlOfdmaPhyTransmission::GenerateInterference(Ptr<SpectrumValue> interferencePsd, Time duration)
 {
     NS_LOG_FUNCTION(this << duration);
     m_phyInterferer->SetTxPowerSpectralDensity(interferencePsd);
     m_phyInterferer->SetPeriod(duration);
     m_phyInterferer->Start();
-    Simulator::Schedule(duration,
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::StopInterference,
-                        this);
+    Simulator::Schedule(duration, &TestUlOfdmaPhyTransmission::StopInterference, this);
 }
 
-template <typename LatestPhyEntityType>
 void
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::StopInterference()
+TestUlOfdmaPhyTransmission::StopInterference()
 {
     m_phyInterferer->Stop();
 }
 
-template <typename LatestPhyEntityType>
+TestUlOfdmaPhyTransmission::~TestUlOfdmaPhyTransmission()
+{
+}
+
 void
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RxSuccess(
-    Ptr<const WifiPsdu> psdu,
-    RxSignalInfo rxSignalInfo,
-    const WifiTxVector& txVector,
-    const std::vector<bool>& /*statusPerMpdu*/)
+TestUlOfdmaPhyTransmission::RxSuccess(Ptr<const WifiPsdu> psdu,
+                                      RxSignalInfo rxSignalInfo,
+                                      const WifiTxVector& txVector,
+                                      const std::vector<bool>& /*statusPerMpdu*/)
 {
     NS_LOG_FUNCTION(this << *psdu << psdu->GetAddr2() << rxSignalInfo << txVector);
     if (psdu->GetAddr2() == Mac48Address("00:00:00:00:00:01"))
@@ -3794,9 +3485,8 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RxSuccess(
     }
 }
 
-template <typename LatestPhyEntityType>
 void
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RxFailure(Ptr<const WifiPsdu> psdu)
+TestUlOfdmaPhyTransmission::RxFailure(Ptr<const WifiPsdu> psdu)
 {
     NS_LOG_FUNCTION(this << *psdu << psdu->GetAddr2());
     if (psdu->GetAddr2() == Mac48Address("00:00:00:00:00:01"))
@@ -3809,11 +3499,10 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RxFailure(Ptr<const WifiPsdu> p
     }
 }
 
-template <typename LatestPhyEntityType>
 void
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckRxFromSta1(uint32_t expectedSuccess,
-                                                                 uint32_t expectedFailures,
-                                                                 uint32_t expectedBytes)
+TestUlOfdmaPhyTransmission::CheckRxFromSta1(uint32_t expectedSuccess,
+                                            uint32_t expectedFailures,
+                                            uint32_t expectedBytes)
 {
     NS_TEST_ASSERT_MSG_EQ(m_countRxSuccessFromSta1,
                           expectedSuccess,
@@ -3821,17 +3510,16 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckRxFromSta1(uint32_t expect
     NS_TEST_ASSERT_MSG_EQ(
         m_countRxFailureFromSta1,
         expectedFailures,
-        "The number of unsuccessfully received packets from STA 1 is not correct!");
+        "The number of unsuccessfuly received packets from STA 1 is not correct!");
     NS_TEST_ASSERT_MSG_EQ(m_countRxBytesFromSta1,
                           expectedBytes,
                           "The number of bytes received from STA 1 is not correct!");
 }
 
-template <typename LatestPhyEntityType>
 void
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckRxFromSta2(uint32_t expectedSuccess,
-                                                                 uint32_t expectedFailures,
-                                                                 uint32_t expectedBytes)
+TestUlOfdmaPhyTransmission::CheckRxFromSta2(uint32_t expectedSuccess,
+                                            uint32_t expectedFailures,
+                                            uint32_t expectedBytes)
 {
     NS_TEST_ASSERT_MSG_EQ(m_countRxSuccessFromSta2,
                           expectedSuccess,
@@ -3839,18 +3527,16 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckRxFromSta2(uint32_t expect
     NS_TEST_ASSERT_MSG_EQ(
         m_countRxFailureFromSta2,
         expectedFailures,
-        "The number of unsuccessfully received packets from STA 2 is not correct!");
+        "The number of unsuccessfuly received packets from STA 2 is not correct!");
     NS_TEST_ASSERT_MSG_EQ(m_countRxBytesFromSta2,
                           expectedBytes,
                           "The number of bytes received from STA 2 is not correct!");
 }
 
-template <typename LatestPhyEntityType>
 void
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckNonOfdmaRxPower(
-    Ptr<OfdmaSpectrumWifiPhy<LatestPhyEntityType>> phy,
-    WifiSpectrumBandInfo band,
-    Watt_u expectedRxPower)
+TestUlOfdmaPhyTransmission::CheckNonOfdmaRxPower(Ptr<OfdmaSpectrumWifiPhy> phy,
+                                                 WifiSpectrumBandInfo band,
+                                                 Watt_u expectedRxPower)
 {
     auto event = phy->GetCurrentEvent();
     NS_ASSERT(event);
@@ -3865,12 +3551,10 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckNonOfdmaRxPower(
                                           << " at " << Simulator::Now());
 }
 
-template <typename LatestPhyEntityType>
 void
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckOfdmaRxPower(
-    Ptr<OfdmaSpectrumWifiPhy<LatestPhyEntityType>> phy,
-    WifiSpectrumBandInfo band,
-    Watt_u expectedRxPower)
+TestUlOfdmaPhyTransmission::CheckOfdmaRxPower(Ptr<OfdmaSpectrumWifiPhy> phy,
+                                              WifiSpectrumBandInfo band,
+                                              Watt_u expectedRxPower)
 {
     /**
      * The current event cannot be used since it points to the preamble part of the HE TB PPDU.
@@ -3902,9 +3586,8 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckOfdmaRxPower(
     }
 }
 
-template <typename LatestPhyEntityType>
 void
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::VerifyEventsCleared()
+TestUlOfdmaPhyTransmission::VerifyEventsCleared()
 {
     NS_TEST_ASSERT_MSG_EQ(m_phyAp->GetCurrentEvent(),
                           nullptr,
@@ -3917,25 +3600,17 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::VerifyEventsCleared()
                           "m_currentEvent for STA 2 was not cleared");
 }
 
-template <typename LatestPhyEntityType>
 void
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState(
-    Ptr<OfdmaSpectrumWifiPhy<LatestPhyEntityType>> phy,
-    WifiPhyState expectedState)
+TestUlOfdmaPhyTransmission::CheckPhyState(Ptr<OfdmaSpectrumWifiPhy> phy, WifiPhyState expectedState)
 {
     // This is needed to make sure PHY state will be checked as the last event if a state change
     // occurred at the exact same time as the check
-    Simulator::ScheduleNow(&TestUlOfdmaPhyTransmission<LatestPhyEntityType>::DoCheckPhyState,
-                           this,
-                           phy,
-                           expectedState);
+    Simulator::ScheduleNow(&TestUlOfdmaPhyTransmission::DoCheckPhyState, this, phy, expectedState);
 }
 
-template <typename LatestPhyEntityType>
 void
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::DoCheckPhyState(
-    Ptr<OfdmaSpectrumWifiPhy<LatestPhyEntityType>> phy,
-    WifiPhyState expectedState)
+TestUlOfdmaPhyTransmission::DoCheckPhyState(Ptr<OfdmaSpectrumWifiPhy> phy,
+                                            WifiPhyState expectedState)
 {
     WifiPhyState currentState;
     PointerValue ptr;
@@ -3949,10 +3624,9 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::DoCheckPhyState(
                                        << expectedState << " at " << Simulator::Now());
 }
 
-template <typename LatestPhyEntityType>
 void
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckApRxStart(uint32_t expectedNotifications,
-                                                                Time expectedLastNotification)
+TestUlOfdmaPhyTransmission::CheckApRxStart(uint32_t expectedNotifications,
+                                           Time expectedLastNotification)
 {
     NS_TEST_ASSERT_MSG_EQ(m_apPhyStateListener->GetNumRxStartNotifications(),
                           expectedNotifications,
@@ -3968,11 +3642,10 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckApRxStart(uint32_t expecte
                               << " for AP at " << Simulator::Now());
 }
 
-template <typename LatestPhyEntityType>
 void
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckApRxEnd(uint32_t expectedNotifications,
-                                                              Time expectedLastNotification,
-                                                              bool expectedSuccess)
+TestUlOfdmaPhyTransmission::CheckApRxEnd(uint32_t expectedNotifications,
+                                         Time expectedLastNotification,
+                                         bool expectedSuccess)
 {
     NS_TEST_ASSERT_MSG_EQ(m_apPhyStateListener->GetNumRxEndNotifications(),
                           expectedNotifications,
@@ -3994,9 +3667,8 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckApRxEnd(uint32_t expectedN
                               << " for AP at " << Simulator::Now());
 }
 
-template <typename LatestPhyEntityType>
 void
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::Reset()
+TestUlOfdmaPhyTransmission::Reset()
 {
     m_countRxSuccessFromSta1 = 0;
     m_countRxSuccessFromSta2 = 0;
@@ -4011,31 +3683,24 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::Reset()
     m_apPhyStateListener->Reset();
 }
 
-template <typename LatestPhyEntityType>
 void
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SetBssColor(Ptr<WifiPhy> phy, uint8_t bssColor)
+TestUlOfdmaPhyTransmission::SetBssColor(Ptr<WifiPhy> phy, uint8_t bssColor)
 {
     Ptr<WifiNetDevice> device = DynamicCast<WifiNetDevice>(phy->GetDevice());
     Ptr<HeConfiguration> heConfiguration = device->GetHeConfiguration();
-    heConfiguration->m_bssColor = bssColor;
+    heConfiguration->SetAttribute("BssColor", UintegerValue(bssColor));
 }
 
-template <typename LatestPhyEntityType>
 void
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SetPsdLimit(Ptr<WifiPhy> phy,
-                                                             dBm_per_MHz_u psdLimit)
+TestUlOfdmaPhyTransmission::SetPsdLimit(Ptr<WifiPhy> phy, dBm_per_MHz_u psdLimit)
 {
     NS_LOG_FUNCTION(this << phy << psdLimit);
     phy->SetAttribute("PowerDensityLimit", DoubleValue(psdLimit));
 }
 
-template <typename LatestPhyEntityType>
 void
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::DoSetup()
+TestUlOfdmaPhyTransmission::DoSetup()
 {
-    const auto standard =
-        (m_modClass == WIFI_MOD_CLASS_HE) ? WIFI_STANDARD_80211ax : WIFI_STANDARD_80211be;
-
     Ptr<MultiModelSpectrumChannel> spectrumChannel = CreateObject<MultiModelSpectrumChannel>();
     Ptr<FriisPropagationLossModel> lossModel = CreateObject<FriisPropagationLossModel>();
     lossModel->SetFrequency(m_frequency);
@@ -4054,30 +3719,24 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::DoSetup()
 
     Ptr<Node> apNode = CreateObject<Node>();
     Ptr<WifiNetDevice> apDev = CreateObject<WifiNetDevice>();
-    apDev->SetStandard(standard);
+    apDev->SetStandard(WIFI_STANDARD_80211ax);
     auto apMac = CreateObjectWithAttributes<ApWifiMac>(
         "Txop",
         PointerValue(CreateObjectWithAttributes<Txop>("AcIndex", StringValue("AC_BE_NQOS"))));
     apMac->SetAttribute("BeaconGeneration", BooleanValue(false));
     apDev->SetMac(apMac);
-    m_phyAp = CreateObject<OfdmaSpectrumWifiPhy<LatestPhyEntityType>>(0);
+    m_phyAp = CreateObject<OfdmaSpectrumWifiPhy>(0);
     Ptr<HeConfiguration> heConfiguration = CreateObject<HeConfiguration>();
     apDev->SetHeConfiguration(heConfiguration);
-    if (m_modClass >= WIFI_MOD_CLASS_EHT)
-    {
-        apDev->SetEhtConfiguration(CreateObject<EhtConfiguration>());
-    }
     Ptr<InterferenceHelper> apInterferenceHelper = CreateObject<InterferenceHelper>();
     m_phyAp->SetInterferenceHelper(apInterferenceHelper);
     Ptr<ErrorRateModel> apErrorModel = CreateObject<NistErrorRateModel>();
     m_phyAp->SetErrorRateModel(apErrorModel);
     m_phyAp->SetDevice(apDev);
     m_phyAp->AddChannel(spectrumChannel);
-    m_phyAp->ConfigureStandard(standard);
-    m_phyAp->SetReceiveOkCallback(
-        MakeCallback(&TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RxSuccess, this));
-    m_phyAp->SetReceiveErrorCallback(
-        MakeCallback(&TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RxFailure, this));
+    m_phyAp->ConfigureStandard(WIFI_STANDARD_80211ax);
+    m_phyAp->SetReceiveOkCallback(MakeCallback(&TestUlOfdmaPhyTransmission::RxSuccess, this));
+    m_phyAp->SetReceiveErrorCallback(MakeCallback(&TestUlOfdmaPhyTransmission::RxFailure, this));
     m_phyAp->SetPreambleDetectionModel(preambleDetectionModel);
     Ptr<ConstantPositionMobilityModel> apMobility = CreateObject<ConstantPositionMobilityModel>();
     m_phyAp->SetMobility(apMobility);
@@ -4090,20 +3749,16 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::DoSetup()
 
     Ptr<Node> sta1Node = CreateObject<Node>();
     Ptr<WifiNetDevice> sta1Dev = CreateObject<WifiNetDevice>();
-    sta1Dev->SetStandard(standard);
+    sta1Dev->SetStandard(WIFI_STANDARD_80211ax);
     sta1Dev->SetHeConfiguration(CreateObject<HeConfiguration>());
-    if (m_modClass >= WIFI_MOD_CLASS_EHT)
-    {
-        sta1Dev->SetEhtConfiguration(CreateObject<EhtConfiguration>());
-    }
-    m_phySta1 = CreateObject<OfdmaSpectrumWifiPhy<LatestPhyEntityType>>(1);
+    m_phySta1 = CreateObject<OfdmaSpectrumWifiPhy>(1);
     Ptr<InterferenceHelper> sta1InterferenceHelper = CreateObject<InterferenceHelper>();
     m_phySta1->SetInterferenceHelper(sta1InterferenceHelper);
     Ptr<ErrorRateModel> sta1ErrorModel = CreateObject<NistErrorRateModel>();
     m_phySta1->SetErrorRateModel(sta1ErrorModel);
     m_phySta1->SetDevice(sta1Dev);
     m_phySta1->AddChannel(spectrumChannel);
-    m_phySta1->ConfigureStandard(standard);
+    m_phySta1->ConfigureStandard(WIFI_STANDARD_80211ax);
     m_phySta1->SetPreambleDetectionModel(preambleDetectionModel);
     Ptr<ConstantPositionMobilityModel> sta1Mobility = CreateObject<ConstantPositionMobilityModel>();
     m_phySta1->SetMobility(sta1Mobility);
@@ -4113,20 +3768,16 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::DoSetup()
 
     Ptr<Node> sta2Node = CreateObject<Node>();
     Ptr<WifiNetDevice> sta2Dev = CreateObject<WifiNetDevice>();
-    sta2Dev->SetStandard(standard);
+    sta2Dev->SetStandard(WIFI_STANDARD_80211ax);
     sta2Dev->SetHeConfiguration(CreateObject<HeConfiguration>());
-    if (m_modClass >= WIFI_MOD_CLASS_EHT)
-    {
-        sta2Dev->SetEhtConfiguration(CreateObject<EhtConfiguration>());
-    }
-    m_phySta2 = CreateObject<OfdmaSpectrumWifiPhy<LatestPhyEntityType>>(2);
+    m_phySta2 = CreateObject<OfdmaSpectrumWifiPhy>(2);
     Ptr<InterferenceHelper> sta2InterferenceHelper = CreateObject<InterferenceHelper>();
     m_phySta2->SetInterferenceHelper(sta2InterferenceHelper);
     Ptr<ErrorRateModel> sta2ErrorModel = CreateObject<NistErrorRateModel>();
     m_phySta2->SetErrorRateModel(sta2ErrorModel);
     m_phySta2->SetDevice(sta2Dev);
     m_phySta2->AddChannel(spectrumChannel);
-    m_phySta2->ConfigureStandard(standard);
+    m_phySta2->ConfigureStandard(WIFI_STANDARD_80211ax);
     m_phySta2->SetPreambleDetectionModel(preambleDetectionModel);
     Ptr<ConstantPositionMobilityModel> sta2Mobility = CreateObject<ConstantPositionMobilityModel>();
     m_phySta2->SetMobility(sta2Mobility);
@@ -4136,20 +3787,16 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::DoSetup()
 
     Ptr<Node> sta3Node = CreateObject<Node>();
     Ptr<WifiNetDevice> sta3Dev = CreateObject<WifiNetDevice>();
-    sta3Dev->SetStandard(standard);
+    sta3Dev->SetStandard(WIFI_STANDARD_80211ax);
     sta3Dev->SetHeConfiguration(CreateObject<HeConfiguration>());
-    if (m_modClass >= WIFI_MOD_CLASS_EHT)
-    {
-        sta3Dev->SetEhtConfiguration(CreateObject<EhtConfiguration>());
-    }
-    m_phySta3 = CreateObject<OfdmaSpectrumWifiPhy<LatestPhyEntityType>>(3);
+    m_phySta3 = CreateObject<OfdmaSpectrumWifiPhy>(3);
     Ptr<InterferenceHelper> sta3InterferenceHelper = CreateObject<InterferenceHelper>();
     m_phySta3->SetInterferenceHelper(sta3InterferenceHelper);
     Ptr<ErrorRateModel> sta3ErrorModel = CreateObject<NistErrorRateModel>();
     m_phySta3->SetErrorRateModel(sta3ErrorModel);
     m_phySta3->SetDevice(sta3Dev);
     m_phySta3->AddChannel(spectrumChannel);
-    m_phySta3->ConfigureStandard(standard);
+    m_phySta3->ConfigureStandard(WIFI_STANDARD_80211ax);
     m_phySta3->SetPreambleDetectionModel(preambleDetectionModel);
     Ptr<ConstantPositionMobilityModel> sta3Mobility = CreateObject<ConstantPositionMobilityModel>();
     m_phySta3->SetMobility(sta3Mobility);
@@ -4181,9 +3828,8 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::DoSetup()
     }
 }
 
-template <typename LatestPhyEntityType>
 void
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::DoTeardown()
+TestUlOfdmaPhyTransmission::DoTeardown()
 {
     m_phyAp->Dispose();
     m_phyAp = nullptr;
@@ -4197,34 +3843,32 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::DoTeardown()
     m_phyInterferer = nullptr;
 }
 
-template <typename LatestPhyEntityType>
 void
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::LogScenario(std::string log) const
+TestUlOfdmaPhyTransmission::LogScenario(std::string log) const
 {
     NS_LOG_INFO(log);
 }
 
-template <typename LatestPhyEntityType>
 void
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::ScheduleTest(Time delay,
-                                                              bool solicited,
-                                                              WifiPhyState expectedStateAtEnd,
-                                                              uint32_t expectedSuccessFromSta1,
-                                                              uint32_t expectedFailuresFromSta1,
-                                                              uint32_t expectedBytesFromSta1,
-                                                              uint32_t expectedSuccessFromSta2,
-                                                              uint32_t expectedFailuresFromSta2,
-                                                              uint32_t expectedBytesFromSta2,
-                                                              bool scheduleTxSta1,
-                                                              Time ulTimeDifference,
-                                                              WifiPhyState expectedStateBeforeEnd,
-                                                              TrigVectorInfo error)
+TestUlOfdmaPhyTransmission::ScheduleTest(Time delay,
+                                         bool solicited,
+                                         WifiPhyState expectedStateAtEnd,
+                                         uint32_t expectedSuccessFromSta1,
+                                         uint32_t expectedFailuresFromSta1,
+                                         uint32_t expectedBytesFromSta1,
+                                         uint32_t expectedSuccessFromSta2,
+                                         uint32_t expectedFailuresFromSta2,
+                                         uint32_t expectedBytesFromSta2,
+                                         bool scheduleTxSta1,
+                                         Time ulTimeDifference,
+                                         WifiPhyState expectedStateBeforeEnd,
+                                         TrigVectorInfo error)
 {
     static uint64_t uid = 0;
 
     // AP sends an SU packet preceding HE TB PPDUs
     Simulator::Schedule(delay - MilliSeconds(10),
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SendSuPpdu,
+                        &TestUlOfdmaPhyTransmission::SendHeSuPpdu,
                         this,
                         0,
                         50,
@@ -4237,11 +3881,7 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::ScheduleTest(Time delay,
     }
     else
     {
-        Simulator::Schedule(delay,
-                            &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SetTrigVector,
-                            this,
-                            0,
-                            error);
+        Simulator::Schedule(delay, &TestUlOfdmaPhyTransmission::SetTrigVector, this, 0, error);
     }
     // STA1 and STA2 send MU UL PPDUs addressed to AP
     Simulator::Schedule(delay - MilliSeconds(1),
@@ -4250,7 +3890,7 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::ScheduleTest(Time delay,
     if (scheduleTxSta1)
     {
         Simulator::Schedule(delay,
-                            &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SendTbPpdu,
+                            &TestUlOfdmaPhyTransmission::SendHeTbPpdu,
                             this,
                             1,
                             1,
@@ -4260,7 +3900,7 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::ScheduleTest(Time delay,
                             false);
     }
     Simulator::Schedule(delay + ulTimeDifference,
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SendTbPpdu,
+                        &TestUlOfdmaPhyTransmission::SendHeTbPpdu,
                         this,
                         2,
                         2,
@@ -4271,12 +3911,12 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::ScheduleTest(Time delay,
 
     // Verify it takes m_expectedPpduDuration to transmit the PPDUs
     Simulator::Schedule(delay + m_expectedPpduDuration - NanoSeconds(1),
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestUlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phyAp,
                         expectedStateBeforeEnd);
     Simulator::Schedule(delay + m_expectedPpduDuration + ulTimeDifference,
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestUlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phyAp,
                         expectedStateAtEnd);
@@ -4298,14 +3938,14 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::ScheduleTest(Time delay,
         // At the end of the transmission, verify that a single RX start notification shall have
         // been notified when the reception of the first HE RB PPDU starts.
         Simulator::Schedule(expectedPayloadEnd,
-                            &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckApRxStart,
+                            &TestUlOfdmaPhyTransmission::CheckApRxStart,
                             this,
                             1,
                             Simulator::Now() + expectedPayloadStart);
         // After the reception (hence we add 1ns to expectedPayloadEnd), a single RX end
         // notification shall have been notified when the reception of the last HE RB PPDU ends
         Simulator::Schedule(expectedPayloadEnd + NanoSeconds(1),
-                            &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckApRxEnd,
+                            &TestUlOfdmaPhyTransmission::CheckApRxEnd,
                             this,
                             1,
                             Simulator::Now() + expectedPayloadEnd,
@@ -4315,50 +3955,45 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::ScheduleTest(Time delay,
     delay += MilliSeconds(100);
     // Check reception state from STA 1
     Simulator::Schedule(delay,
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckRxFromSta1,
+                        &TestUlOfdmaPhyTransmission::CheckRxFromSta1,
                         this,
                         expectedSuccessFromSta1,
                         expectedFailuresFromSta1,
                         expectedBytesFromSta1);
     // Check reception state from STA 2
     Simulator::Schedule(delay,
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckRxFromSta2,
+                        &TestUlOfdmaPhyTransmission::CheckRxFromSta2,
                         this,
                         expectedSuccessFromSta2,
                         expectedFailuresFromSta2,
                         expectedBytesFromSta2);
     // Verify events data have been cleared
-    Simulator::Schedule(delay,
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::VerifyEventsCleared,
-                        this);
+    Simulator::Schedule(delay, &TestUlOfdmaPhyTransmission::VerifyEventsCleared, this);
 
     delay += MilliSeconds(100);
-    Simulator::Schedule(delay, &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::Reset, this);
+    Simulator::Schedule(delay, &TestUlOfdmaPhyTransmission::Reset, this);
 }
 
-template <typename LatestPhyEntityType>
 void
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SchedulePowerMeasurementChecks(
-    Time delay,
-    Watt_u rxPowerNonOfdmaRu1,
-    Watt_u rxPowerNonOfdmaRu2,
-    Watt_u rxPowerOfdmaRu1,
-    Watt_u rxPowerOfdmaRu2)
+TestUlOfdmaPhyTransmission::SchedulePowerMeasurementChecks(Time delay,
+                                                           Watt_u rxPowerNonOfdmaRu1,
+                                                           Watt_u rxPowerNonOfdmaRu2,
+                                                           Watt_u rxPowerOfdmaRu1,
+                                                           Watt_u rxPowerOfdmaRu2)
 {
     const auto detectionDuration = WifiPhy::GetPreambleDetectionDuration();
-    const auto txVectorSta1 = GetTxVectorForTbPpdu(1, 1, 0);
-    const auto txVectorSta2 = GetTxVectorForTbPpdu(2, 2, 0);
-    const auto phyEntity =
-        std::dynamic_pointer_cast<OfdmaTestPhy<LatestPhyEntityType>>(m_phyAp->GetPhyEntity());
-    const auto nonOfdmaDuration = phyEntity->CalculateNonHeDurationForHeTb(txVectorSta2);
-    NS_ASSERT(nonOfdmaDuration == phyEntity->CalculateNonHeDurationForHeTb(txVectorSta1));
+    const auto txVectorSta1 = GetTxVectorForHeTbPpdu(1, 1, 0);
+    const auto txVectorSta2 = GetTxVectorForHeTbPpdu(2, 2, 0);
+    const auto hePhy = m_phyAp->GetHePhy();
+    const auto nonOfdmaDuration = hePhy->CalculateNonHeDurationForHeTb(txVectorSta2);
+    NS_ASSERT(nonOfdmaDuration == hePhy->CalculateNonHeDurationForHeTb(txVectorSta1));
 
     std::vector<Watt_u> rxPowerNonOfdma{rxPowerNonOfdmaRu1, rxPowerNonOfdmaRu2};
-    std::vector<WifiSpectrumBandInfo> nonOfdmaBand{phyEntity->GetNonOfdmaBand(txVectorSta1, 1),
-                                                   phyEntity->GetNonOfdmaBand(txVectorSta2, 2)};
+    std::vector<WifiSpectrumBandInfo> nonOfdmaBand{hePhy->GetNonOfdmaBand(txVectorSta1, 1),
+                                                   hePhy->GetNonOfdmaBand(txVectorSta2, 2)};
     std::vector<Watt_u> rxPowerOfdma{rxPowerOfdmaRu1, rxPowerOfdmaRu2};
-    std::vector<WifiSpectrumBandInfo> ofdmaBand{phyEntity->GetRuBandForRx(txVectorSta1, 1),
-                                                phyEntity->GetRuBandForRx(txVectorSta2, 2)};
+    std::vector<WifiSpectrumBandInfo> ofdmaBand{hePhy->GetRuBandForRx(txVectorSta1, 1),
+                                                hePhy->GetRuBandForRx(txVectorSta2, 2)};
 
     for (uint8_t i = 0; i < 2; ++i)
     {
@@ -4369,13 +4004,13 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SchedulePowerMeasurementChecks(
         Simulator::Schedule(
             delay + detectionDuration +
                 NanoSeconds(1), // just after beginning of portion (once event is stored)
-            &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckNonOfdmaRxPower,
+            &TestUlOfdmaPhyTransmission::CheckNonOfdmaRxPower,
             this,
             m_phyAp,
             nonOfdmaBand[i],
             rxPowerNonOfdma[i]);
         Simulator::Schedule(delay + nonOfdmaDuration - NanoSeconds(1), // just before end of portion
-                            &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckNonOfdmaRxPower,
+                            &TestUlOfdmaPhyTransmission::CheckNonOfdmaRxPower,
                             this,
                             m_phyAp,
                             nonOfdmaBand[i],
@@ -4383,14 +4018,14 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SchedulePowerMeasurementChecks(
         // Check received power on OFDMA portion
         Simulator::Schedule(delay + nonOfdmaDuration +
                                 NanoSeconds(1), // just after beginning of portion
-                            &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckOfdmaRxPower,
+                            &TestUlOfdmaPhyTransmission::CheckOfdmaRxPower,
                             this,
                             m_phyAp,
                             ofdmaBand[i],
                             rxPowerOfdma[i]);
         Simulator::Schedule(delay + m_expectedPpduDuration -
                                 NanoSeconds(1), // just before end of portion
-                            &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckOfdmaRxPower,
+                            &TestUlOfdmaPhyTransmission::CheckOfdmaRxPower,
                             this,
                             m_phyAp,
                             ofdmaBand[i],
@@ -4405,13 +4040,13 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SchedulePowerMeasurementChecks(
         Simulator::Schedule(
             delay + detectionDuration +
                 NanoSeconds(1), // just after beginning of portion (once event is stored)
-            &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckOfdmaRxPower,
+            &TestUlOfdmaPhyTransmission::CheckOfdmaRxPower,
             this,
             m_phySta3,
             nonOfdmaBand[i],
             rxPowerNonOfdma[i]);
         Simulator::Schedule(delay + nonOfdmaDuration - NanoSeconds(1), // just before end of portion
-                            &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckOfdmaRxPower,
+                            &TestUlOfdmaPhyTransmission::CheckOfdmaRxPower,
                             this,
                             m_phySta3,
                             nonOfdmaBand[i],
@@ -4419,14 +4054,14 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SchedulePowerMeasurementChecks(
         // Check received power on OFDMA portion
         Simulator::Schedule(delay + nonOfdmaDuration +
                                 NanoSeconds(1), // just after beginning of portion
-                            &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckOfdmaRxPower,
+                            &TestUlOfdmaPhyTransmission::CheckOfdmaRxPower,
                             this,
                             m_phySta3,
                             ofdmaBand[i],
                             rxPowerOfdma[i]);
         Simulator::Schedule(delay + m_expectedPpduDuration -
                                 NanoSeconds(1), // just before end of portion
-                            &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckOfdmaRxPower,
+                            &TestUlOfdmaPhyTransmission::CheckOfdmaRxPower,
                             this,
                             m_phySta3,
                             ofdmaBand[i],
@@ -4448,13 +4083,13 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SchedulePowerMeasurementChecks(
         Simulator::Schedule(
             delay + detectionDuration +
                 NanoSeconds(1), // just after beginning of portion (once event is stored)
-            &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckOfdmaRxPower,
+            &TestUlOfdmaPhyTransmission::CheckOfdmaRxPower,
             this,
             m_phySta2,
             nonOfdmaBand[0],
             rxPowerNonOfdmaSta1Only);
         Simulator::Schedule(delay + nonOfdmaDuration - NanoSeconds(1), // just before end of portion
-                            &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckOfdmaRxPower,
+                            &TestUlOfdmaPhyTransmission::CheckOfdmaRxPower,
                             this,
                             m_phySta2,
                             nonOfdmaBand[0],
@@ -4462,14 +4097,14 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SchedulePowerMeasurementChecks(
         // Check received power on OFDMA portion
         Simulator::Schedule(delay + nonOfdmaDuration +
                                 NanoSeconds(1), // just after beginning of portion
-                            &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckOfdmaRxPower,
+                            &TestUlOfdmaPhyTransmission::CheckOfdmaRxPower,
                             this,
                             m_phySta2,
                             ofdmaBand[0],
                             rxPowerOfdma[0]);
         Simulator::Schedule(delay + m_expectedPpduDuration -
                                 NanoSeconds(1), // just before end of portion
-                            &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckOfdmaRxPower,
+                            &TestUlOfdmaPhyTransmission::CheckOfdmaRxPower,
                             this,
                             m_phySta2,
                             ofdmaBand[0],
@@ -4477,12 +4112,9 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SchedulePowerMeasurementChecks(
     }
 }
 
-template <typename LatestPhyEntityType>
 void
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
+TestUlOfdmaPhyTransmission::RunOne()
 {
-    NS_LOG_DEBUG("Run UL OFDMA PHY transmission test for " << m_channelWidth << " MHz");
-
     RngSeedManager::SetSeed(1);
     RngSeedManager::SetRun(1);
     int64_t streamNumber = 0;
@@ -4491,24 +4123,24 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     m_phySta2->AssignStreams(streamNumber);
     m_phySta3->AssignStreams(streamNumber);
 
-    const auto standard =
-        (m_modClass == WIFI_MOD_CLASS_HE) ? WIFI_STANDARD_80211ax : WIFI_STANDARD_80211be;
     auto channelNum = WifiPhyOperatingChannel::FindFirst(0,
                                                          m_frequency,
                                                          m_channelWidth,
-                                                         standard,
-                                                         WIFI_PHY_BAND_6GHZ)
+                                                         WIFI_STANDARD_80211ax,
+                                                         WIFI_PHY_BAND_5GHZ)
                           ->number;
 
-    const auto operatingChannel{
-        WifiPhy::ChannelTuple{channelNum, m_channelWidth, WIFI_PHY_BAND_6GHZ, 0}};
-    m_phyAp->SetOperatingChannel(operatingChannel);
-    m_phySta1->SetOperatingChannel(operatingChannel);
-    m_phySta2->SetOperatingChannel(operatingChannel);
-    m_phySta3->SetOperatingChannel(operatingChannel);
+    m_phyAp->SetOperatingChannel(
+        WifiPhy::ChannelTuple{channelNum, m_channelWidth, WIFI_PHY_BAND_5GHZ, 0});
+    m_phySta1->SetOperatingChannel(
+        WifiPhy::ChannelTuple{channelNum, m_channelWidth, WIFI_PHY_BAND_5GHZ, 0});
+    m_phySta2->SetOperatingChannel(
+        WifiPhy::ChannelTuple{channelNum, m_channelWidth, WIFI_PHY_BAND_5GHZ, 0});
+    m_phySta3->SetOperatingChannel(
+        WifiPhy::ChannelTuple{channelNum, m_channelWidth, WIFI_PHY_BAND_5GHZ, 0});
 
     Time delay;
-    Simulator::Schedule(delay, &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::Reset, this);
+    Simulator::Schedule(delay, &TestUlOfdmaPhyTransmission::Reset, this);
     delay += Seconds(1);
 
     /**
@@ -4522,7 +4154,7 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     //---------------------------------------------------------------------------
     // Verify that both solicited HE TB PPDUs have been corrected received
     Simulator::Schedule(delay,
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::LogScenario,
+                        &TestUlOfdmaPhyTransmission::LogScenario,
                         this,
                         "Reception of solicited HE TB PPDUs");
     ScheduleTest(delay,
@@ -4541,7 +4173,7 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     // corrected received
     Simulator::Schedule(
         delay,
-        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::LogScenario,
+        &TestUlOfdmaPhyTransmission::LogScenario,
         this,
         "Reception of solicited HE TB PPDUs with delay (< 400ns) between the two signals");
     ScheduleTest(delay,
@@ -4560,7 +4192,7 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     //---------------------------------------------------------------------------
     // Verify that no unsolicited HE TB PPDU is received
     Simulator::Schedule(delay,
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::LogScenario,
+                        &TestUlOfdmaPhyTransmission::LogScenario,
                         this,
                         "Dropping of unsolicited HE TB PPDUs");
     ScheduleTest(delay,
@@ -4580,7 +4212,7 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     //---------------------------------------------------------------------------
     // Verify that HE TB PPDUs with channel width differing from TRIGVECTOR are discarded
     Simulator::Schedule(delay,
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::LogScenario,
+                        &TestUlOfdmaPhyTransmission::LogScenario,
                         this,
                         "Dropping of HE TB PPDUs with channel width differing from TRIGVECTOR");
     ScheduleTest(delay,
@@ -4601,7 +4233,7 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     //---------------------------------------------------------------------------
     // Verify that HE TB PPDUs with UL Length differing from TRIGVECTOR are discarded
     Simulator::Schedule(delay,
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::LogScenario,
+                        &TestUlOfdmaPhyTransmission::LogScenario,
                         this,
                         "Dropping of HE TB PPDUs with UL Length differing from TRIGVECTOR");
     ScheduleTest(delay,
@@ -4622,7 +4254,7 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     //---------------------------------------------------------------------------
     // Verify that HE TB PPDUs with AIDs differing from TRIGVECTOR are discarded
     Simulator::Schedule(delay,
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::LogScenario,
+                        &TestUlOfdmaPhyTransmission::LogScenario,
                         this,
                         "Dropping of HE TB PPDUs with AIDs differing from TRIGVECTOR");
     ScheduleTest(delay,
@@ -4645,7 +4277,7 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     // impacted
     Simulator::Schedule(
         delay,
-        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::LogScenario,
+        &TestUlOfdmaPhyTransmission::LogScenario,
         this,
         "Reception of solicited HE TB PPDUs with interference on RU 1 during PSDU reception");
     // A strong non-wifi interference is generated on RU 1 during PSDU reception
@@ -4661,8 +4293,8 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     Watt_u interferencePower{0.1};
     *interferencePsdRu1 = interferencePower / (MHzToHz(m_channelWidth / 2) * 20);
 
-    Simulator::Schedule(delay + MicroSeconds(40),
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::GenerateInterference,
+    Simulator::Schedule(delay + MicroSeconds(50),
+                        &TestUlOfdmaPhyTransmission::GenerateInterference,
                         this,
                         interferencePsdRu1,
                         MilliSeconds(100));
@@ -4684,7 +4316,7 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     // impacted
     Simulator::Schedule(
         delay,
-        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::LogScenario,
+        &TestUlOfdmaPhyTransmission::LogScenario,
         this,
         "Reception of solicited HE TB PPDUs with interference on RU 2 during PSDU reception");
     // A strong non-wifi interference is generated on RU 2 during PSDU reception
@@ -4698,8 +4330,8 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     Ptr<SpectrumValue> interferencePsdRu2 = Create<SpectrumValue>(SpectrumInterferenceRu2);
     *interferencePsdRu2 = interferencePower / (MHzToHz(m_channelWidth / 2) * 20);
 
-    Simulator::Schedule(delay + MicroSeconds(40),
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::GenerateInterference,
+    Simulator::Schedule(delay + MicroSeconds(50),
+                        &TestUlOfdmaPhyTransmission::GenerateInterference,
                         this,
                         interferencePsdRu2,
                         MilliSeconds(100));
@@ -4722,7 +4354,7 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     // Generate an interference on the full band and verify that both solicited HE TB PPDUs have
     // been impacted
     Simulator::Schedule(delay,
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::LogScenario,
+                        &TestUlOfdmaPhyTransmission::LogScenario,
                         this,
                         "Reception of solicited HE TB PPDUs with interference on the full band "
                         "during PSDU reception");
@@ -4737,8 +4369,8 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     Ptr<SpectrumValue> interferencePsdAll = Create<SpectrumValue>(SpectrumInterferenceAll);
     *interferencePsdAll = interferencePower / (MHzToHz(m_channelWidth) * 20);
 
-    Simulator::Schedule(delay + MicroSeconds(40),
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::GenerateInterference,
+    Simulator::Schedule(delay + MicroSeconds(50),
+                        &TestUlOfdmaPhyTransmission::GenerateInterference,
                         this,
                         interferencePsdAll,
                         MilliSeconds(100));
@@ -4761,13 +4393,13 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     // solicited HE TB PPDUs have been impacted if they are on the same
     // 20 MHz channel. Only STA 1's solicited HE TB PPDU is impacted otherwise.
     Simulator::Schedule(delay,
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::LogScenario,
+                        &TestUlOfdmaPhyTransmission::LogScenario,
                         this,
                         "Reception of solicited HE TB PPDUs with another HE TB PPDU arriving on RU "
                         "1 during PSDU reception");
     // Another HE TB PPDU arrives at AP on the same RU as STA 1 during PSDU reception
-    Simulator::Schedule(delay + MicroSeconds(40),
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SendTbPpdu,
+    Simulator::Schedule(delay + MicroSeconds(50),
+                        &TestUlOfdmaPhyTransmission::SendHeTbPpdu,
                         this,
                         3,
                         1,
@@ -4813,13 +4445,13 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     // solicited HE TB PPDUs have been impacted if they are on the same
     // 20 MHz channel. Only STA 2's solicited HE TB PPDU is impacted otherwise.
     Simulator::Schedule(delay,
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::LogScenario,
+                        &TestUlOfdmaPhyTransmission::LogScenario,
                         this,
                         "Reception of solicited HE TB PPDUs with another HE TB PPDU arriving on RU "
                         "2 during PSDU reception");
     // Another HE TB PPDU arrives at AP on the same RU as STA 2 during PSDU reception
-    Simulator::Schedule(delay + MicroSeconds(40),
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SendTbPpdu,
+    Simulator::Schedule(delay + MicroSeconds(50),
+                        &TestUlOfdmaPhyTransmission::SendHeTbPpdu,
                         this,
                         3,
                         2,
@@ -4864,12 +4496,12 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     // impacted
     Simulator::Schedule(
         delay,
-        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::LogScenario,
+        &TestUlOfdmaPhyTransmission::LogScenario,
         this,
         "Reception of solicited HE TB PPDUs with an HE SU PPDU arriving during the 400 ns window");
     // One HE SU arrives at AP during the 400ns window
     Simulator::Schedule(delay + NanoSeconds(300),
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SendSuPpdu,
+                        &TestUlOfdmaPhyTransmission::SendHeSuPpdu,
                         this,
                         3,
                         1002,
@@ -4891,13 +4523,13 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     // Only send a solicited HE TB PPDU from STA 2 on RU 2 and verify that it has been correctly
     // received
     Simulator::Schedule(delay,
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::LogScenario,
+                        &TestUlOfdmaPhyTransmission::LogScenario,
                         this,
                         "Reception of solicited HE TB PPDU only on RU 2");
     // Check that STA3 will correctly set its state to CCA_BUSY if in measurement channel or IDLE
     // otherwise
     Simulator::Schedule(delay + m_expectedPpduDuration - NanoSeconds(1),
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::CheckPhyState,
+                        &TestUlOfdmaPhyTransmission::CheckPhyState,
                         this,
                         m_phySta3,
                         (m_channelWidth >= MHz_u{40})
@@ -4921,7 +4553,7 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     //---------------------------------------------------------------------------
     // Measure the power of a solicited HE TB PPDU from STA 2 on RU 2
     Simulator::Schedule(delay,
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::LogScenario,
+                        &TestUlOfdmaPhyTransmission::LogScenario,
                         this,
                         "Measure power for reception of HE TB PPDU only on RU 2");
     auto rxPower = DbmToW(
@@ -4950,13 +4582,13 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     // limitation enforced
     Simulator::Schedule(
         delay,
-        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::LogScenario,
+        &TestUlOfdmaPhyTransmission::LogScenario,
         this,
         "Measure power for reception of HE TB PPDU only on RU 2 with PSD limitation");
     // Configure PSD limitation at 3 dBm/MHz -> 3+13.0103=16.0103 dBm max for 20 MHz,
     // 3+9.0309=12.0309 dBm max for 106-tone RU, no impact for 40 MHz and above
     Simulator::Schedule(delay - NanoSeconds(1), // just before sending HE TB
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SetPsdLimit,
+                        &TestUlOfdmaPhyTransmission::SetPsdLimit,
                         this,
                         m_phySta2,
                         dBm_per_MHz_u{3});
@@ -4981,7 +4613,7 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
 
     // Reset PSD limitation once HE TB has been sent
     Simulator::Schedule(delay + m_expectedPpduDuration,
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SetPsdLimit,
+                        &TestUlOfdmaPhyTransmission::SetPsdLimit,
                         this,
                         m_phySta2,
                         dBm_per_MHz_u{100});
@@ -5002,7 +4634,7 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     //---------------------------------------------------------------------------
     // Measure the power of 2 solicited HE TB PPDU from both STAs
     Simulator::Schedule(delay,
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::LogScenario,
+                        &TestUlOfdmaPhyTransmission::LogScenario,
                         this,
                         "Measure power for reception of HE TB PPDU on both RUs");
     rxPower = DbmToW(
@@ -5027,17 +4659,13 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     // Verify that an HE TB PPDU from another BSS has been correctly received (no UL MU transmission
     // ongoing)
     Simulator::Schedule(delay,
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::LogScenario,
+                        &TestUlOfdmaPhyTransmission::LogScenario,
                         this,
                         "Reception of an HE TB PPDU from another BSS");
     // One HE TB from another BSS (BSS color 2) arrives at AP (BSS color 1)
-    Simulator::Schedule(delay,
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SetBssColor,
-                        this,
-                        m_phyAp,
-                        1);
+    Simulator::Schedule(delay, &TestUlOfdmaPhyTransmission::SetBssColor, this, m_phyAp, 1);
     Simulator::Schedule(delay + MilliSeconds(100),
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SendTbPpdu,
+                        &TestUlOfdmaPhyTransmission::SendHeTbPpdu,
                         this,
                         3,
                         1,
@@ -5048,12 +4676,10 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
 
     // Verify events data have been cleared
     Simulator::Schedule(delay + MilliSeconds(200),
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::VerifyEventsCleared,
+                        &TestUlOfdmaPhyTransmission::VerifyEventsCleared,
                         this);
 
-    Simulator::Schedule(delay + MilliSeconds(500),
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::Reset,
-                        this);
+    Simulator::Schedule(delay + MilliSeconds(500), &TestUlOfdmaPhyTransmission::Reset, this);
     delay += Seconds(1);
 
     //---------------------------------------------------------------------------
@@ -5061,17 +4687,13 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     // corrected received
     Simulator::Schedule(
         delay,
-        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::LogScenario,
+        &TestUlOfdmaPhyTransmission::LogScenario,
         this,
         "Reception of solicited HE TB PPDUs with delay (< 400ns) between the two signals and "
         "reception of an HE TB PPDU from another BSS between the ends of the two HE TB PPDUs");
-    Simulator::Schedule(delay,
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SetBssColor,
-                        this,
-                        m_phyAp,
-                        1);
+    Simulator::Schedule(delay, &TestUlOfdmaPhyTransmission::SetBssColor, this, m_phyAp, 1);
     Simulator::Schedule(delay + m_expectedPpduDuration + NanoSeconds(100),
-                        &TestUlOfdmaPhyTransmission<LatestPhyEntityType>::SendTbPpdu,
+                        &TestUlOfdmaPhyTransmission::SendHeTbPpdu,
                         this,
                         3,
                         1,
@@ -5095,37 +4717,32 @@ TestUlOfdmaPhyTransmission<LatestPhyEntityType>::RunOne()
     Simulator::Run();
 }
 
-template <typename LatestPhyEntityType>
 void
-TestUlOfdmaPhyTransmission<LatestPhyEntityType>::DoRun()
+TestUlOfdmaPhyTransmission::DoRun()
 {
-    m_frequency = MHz_u{5955};
+    m_frequency = MHz_u{5180};
     m_channelWidth = MHz_u{20};
     m_expectedPpduDuration = NanoSeconds(292800);
+    NS_LOG_DEBUG("Run UL OFDMA PHY transmission test for " << m_channelWidth << " MHz");
     RunOne();
 
-    m_frequency = MHz_u{5965};
+    m_frequency = MHz_u{5190};
     m_channelWidth = MHz_u{40};
     m_expectedPpduDuration = NanoSeconds(163200);
+    NS_LOG_DEBUG("Run UL OFDMA PHY transmission test for " << m_channelWidth << " MHz");
     RunOne();
 
-    m_frequency = MHz_u{5985};
+    m_frequency = MHz_u{5210};
     m_channelWidth = MHz_u{80};
     m_expectedPpduDuration = NanoSeconds(105600);
+    NS_LOG_DEBUG("Run UL OFDMA PHY transmission test for " << m_channelWidth << " MHz");
     RunOne();
 
-    m_frequency = MHz_u{6025};
+    m_frequency = MHz_u{5250};
     m_channelWidth = MHz_u{160};
     m_expectedPpduDuration = NanoSeconds(76800);
+    NS_LOG_DEBUG("Run UL OFDMA PHY transmission test for " << m_channelWidth << " MHz");
     RunOne();
-
-    if (m_modClass >= WIFI_MOD_CLASS_EHT)
-    {
-        m_frequency = MHz_u{6105};
-        m_channelWidth = MHz_u{320};
-        m_expectedPpduDuration = NanoSeconds(62400);
-        RunOne();
-    }
 
     Simulator::Destroy();
 }
@@ -5154,7 +4771,10 @@ class TestPhyPaddingExclusion : public TestCase
      * @param payloadSize the size of the payload in bytes
      * @param txDuration the duration of the PPDU
      */
-    void SendTbPpdu(uint16_t txStaId, std::size_t index, std::size_t payloadSize, Time txDuration);
+    void SendHeTbPpdu(uint16_t txStaId,
+                      std::size_t index,
+                      std::size_t payloadSize,
+                      Time txDuration);
     /**
      * Set TRIGVECTOR for HE TB PPDU
      *
@@ -5208,9 +4828,9 @@ class TestPhyPaddingExclusion : public TestCase
      * @param phy the PHY
      * @param expectedState the expected state of the PHY
      */
-    void CheckPhyState(Ptr<OfdmaSpectrumWifiPhy<HePhy>> phy, WifiPhyState expectedState);
+    void CheckPhyState(Ptr<OfdmaSpectrumWifiPhy> phy, WifiPhyState expectedState);
     /// @copydoc CheckPhyState
-    void DoCheckPhyState(Ptr<OfdmaSpectrumWifiPhy<HePhy>> phy, WifiPhyState expectedState);
+    void DoCheckPhyState(Ptr<OfdmaSpectrumWifiPhy> phy, WifiPhyState expectedState);
 
     /**
      * Reset function
@@ -5235,9 +4855,9 @@ class TestPhyPaddingExclusion : public TestCase
      */
     void RxFailure(Ptr<const WifiPsdu> psdu);
 
-    Ptr<OfdmaSpectrumWifiPhy<HePhy>> m_phyAp;   ///< PHY of AP
-    Ptr<OfdmaSpectrumWifiPhy<HePhy>> m_phySta1; ///< PHY of STA 1
-    Ptr<OfdmaSpectrumWifiPhy<HePhy>> m_phySta2; ///< PHY of STA 2
+    Ptr<OfdmaSpectrumWifiPhy> m_phyAp;   ///< PHY of AP
+    Ptr<OfdmaSpectrumWifiPhy> m_phySta1; ///< PHY of STA 1
+    Ptr<OfdmaSpectrumWifiPhy> m_phySta2; ///< PHY of STA 2
 
     Ptr<WaveformGenerator> m_phyInterferer; ///< PHY of interferer
 
@@ -5261,10 +4881,10 @@ TestPhyPaddingExclusion::TestPhyPaddingExclusion()
 }
 
 void
-TestPhyPaddingExclusion::SendTbPpdu(uint16_t txStaId,
-                                    std::size_t index,
-                                    std::size_t payloadSize,
-                                    Time txDuration)
+TestPhyPaddingExclusion::SendHeTbPpdu(uint16_t txStaId,
+                                      std::size_t index,
+                                      std::size_t payloadSize,
+                                      Time txDuration)
 {
     WifiConstPsduMap psdus;
 
@@ -5280,7 +4900,7 @@ TestPhyPaddingExclusion::SendTbPpdu(uint16_t txStaId,
                           false,
                           true};
 
-    HeRu::RuSpec ru(RuType::RU_106_TONE, index, false);
+    HeRu::RuSpec ru(HeRu::RU_106_TONE, index, false);
     txVector.SetRu(ru, txStaId);
     txVector.SetMode(HePhy::GetHeMcs7(), txStaId);
     txVector.SetNss(1, txStaId);
@@ -5297,7 +4917,7 @@ TestPhyPaddingExclusion::SendTbPpdu(uint16_t txStaId,
     auto psdu = Create<WifiPsdu>(pkt, hdr);
     psdus.insert(std::make_pair(txStaId, psdu));
 
-    Ptr<OfdmaSpectrumWifiPhy<HePhy>> phy;
+    Ptr<OfdmaSpectrumWifiPhy> phy;
     if (txStaId == 1)
     {
         phy = m_phySta1;
@@ -5377,7 +4997,7 @@ TestPhyPaddingExclusion::CheckRxFromSta1(uint32_t expectedSuccess,
     NS_TEST_ASSERT_MSG_EQ(
         m_countRxFailureFromSta1,
         expectedFailures,
-        "The number of unsuccessfully received packets from STA 1 is not correct!");
+        "The number of unsuccessfuly received packets from STA 1 is not correct!");
     NS_TEST_ASSERT_MSG_EQ(m_countRxBytesFromSta1,
                           expectedBytes,
                           "The number of bytes received from STA 1 is not correct!");
@@ -5394,7 +5014,7 @@ TestPhyPaddingExclusion::CheckRxFromSta2(uint32_t expectedSuccess,
     NS_TEST_ASSERT_MSG_EQ(
         m_countRxFailureFromSta2,
         expectedFailures,
-        "The number of unsuccessfully received packets from STA 2 is not correct!");
+        "The number of unsuccessfuly received packets from STA 2 is not correct!");
     NS_TEST_ASSERT_MSG_EQ(m_countRxBytesFromSta2,
                           expectedBytes,
                           "The number of bytes received from STA 2 is not correct!");
@@ -5415,8 +5035,7 @@ TestPhyPaddingExclusion::VerifyEventsCleared()
 }
 
 void
-TestPhyPaddingExclusion::CheckPhyState(Ptr<OfdmaSpectrumWifiPhy<HePhy>> phy,
-                                       WifiPhyState expectedState)
+TestPhyPaddingExclusion::CheckPhyState(Ptr<OfdmaSpectrumWifiPhy> phy, WifiPhyState expectedState)
 {
     // This is needed to make sure PHY state will be checked as the last event if a state change
     // occurred at the exact same time as the check
@@ -5424,8 +5043,7 @@ TestPhyPaddingExclusion::CheckPhyState(Ptr<OfdmaSpectrumWifiPhy<HePhy>> phy,
 }
 
 void
-TestPhyPaddingExclusion::DoCheckPhyState(Ptr<OfdmaSpectrumWifiPhy<HePhy>> phy,
-                                         WifiPhyState expectedState)
+TestPhyPaddingExclusion::DoCheckPhyState(Ptr<OfdmaSpectrumWifiPhy> phy, WifiPhyState expectedState)
 {
     WifiPhyState currentState = phy->GetState()->GetState();
     NS_LOG_FUNCTION(this << currentState);
@@ -5471,7 +5089,7 @@ TestPhyPaddingExclusion::DoSetup()
         PointerValue(CreateObjectWithAttributes<Txop>("AcIndex", StringValue("AC_BE_NQOS"))));
     apMac->SetAttribute("BeaconGeneration", BooleanValue(false));
     apDev->SetMac(apMac);
-    m_phyAp = CreateObject<OfdmaSpectrumWifiPhy<HePhy>>(0);
+    m_phyAp = CreateObject<OfdmaSpectrumWifiPhy>(0);
     Ptr<HeConfiguration> heConfiguration = CreateObject<HeConfiguration>();
     apDev->SetHeConfiguration(heConfiguration);
     Ptr<InterferenceHelper> apInterferenceHelper = CreateObject<InterferenceHelper>();
@@ -5504,7 +5122,7 @@ TestPhyPaddingExclusion::DoSetup()
 
     Ptr<Node> sta1Node = CreateObject<Node>();
     Ptr<WifiNetDevice> sta1Dev = CreateObject<WifiNetDevice>();
-    m_phySta1 = CreateObject<OfdmaSpectrumWifiPhy<HePhy>>(1);
+    m_phySta1 = CreateObject<OfdmaSpectrumWifiPhy>(1);
     Ptr<InterferenceHelper> sta1InterferenceHelper = CreateObject<InterferenceHelper>();
     m_phySta1->SetInterferenceHelper(sta1InterferenceHelper);
     Ptr<ErrorRateModel> sta1ErrorModel = CreateObject<NistErrorRateModel>();
@@ -5525,7 +5143,7 @@ TestPhyPaddingExclusion::DoSetup()
 
     Ptr<Node> sta2Node = CreateObject<Node>();
     Ptr<WifiNetDevice> sta2Dev = CreateObject<WifiNetDevice>();
-    m_phySta2 = CreateObject<OfdmaSpectrumWifiPhy<HePhy>>(2);
+    m_phySta2 = CreateObject<OfdmaSpectrumWifiPhy>(2);
     Ptr<InterferenceHelper> sta2InterferenceHelper = CreateObject<InterferenceHelper>();
     m_phySta2->SetInterferenceHelper(sta2InterferenceHelper);
     Ptr<ErrorRateModel> sta2ErrorModel = CreateObject<NistErrorRateModel>();
@@ -5580,17 +5198,17 @@ TestPhyPaddingExclusion::SetTrigVector(Time ppduDuration)
                             false,
                             false,
                             true};
-    trigVector.SetRu(HeRu::RuSpec(RuType::RU_106_TONE, 1, false), 1);
+    trigVector.SetRu(HeRu::RuSpec(HeRu::RU_106_TONE, 1, false), 1);
     trigVector.SetMode(HePhy::GetHeMcs7(), 1);
     trigVector.SetNss(1, 1);
-    trigVector.SetRu(HeRu::RuSpec(RuType::RU_106_TONE, 2, false), 2);
+    trigVector.SetRu(HeRu::RuSpec(HeRu::RU_106_TONE, 2, false), 2);
     trigVector.SetMode(HePhy::GetHeMcs7(), 2);
     trigVector.SetNss(1, 2);
     uint16_t length;
     std::tie(length, ppduDuration) =
         HePhy::ConvertHeTbPpduDurationToLSigLength(ppduDuration, trigVector, m_phyAp->GetPhyBand());
     trigVector.SetLength(length);
-    auto hePhyAp = std::dynamic_pointer_cast<HePhy>(m_phyAp->GetLatestPhyEntity());
+    auto hePhyAp = DynamicCast<HePhy>(m_phyAp->GetLatestPhyEntity());
     hePhyAp->SetTrigVector(trigVector, ppduDuration);
 }
 
@@ -5605,14 +5223,14 @@ TestPhyPaddingExclusion::DoRun()
 
     // STA1 and STA2 send MU UL PPDUs addressed to AP:
     Simulator::Schedule(Seconds(1),
-                        &TestPhyPaddingExclusion::SendTbPpdu,
+                        &TestPhyPaddingExclusion::SendHeTbPpdu,
                         this,
                         1,
                         1,
                         1000,
                         ppduWithPaddingDuration);
     Simulator::Schedule(Seconds(1),
-                        &TestPhyPaddingExclusion::SendTbPpdu,
+                        &TestPhyPaddingExclusion::SendHeTbPpdu,
                         this,
                         2,
                         2,
@@ -5648,14 +5266,14 @@ TestPhyPaddingExclusion::DoRun()
 
     // STA1 and STA2 send MU UL PPDUs addressed to AP:
     Simulator::Schedule(Seconds(2),
-                        &TestPhyPaddingExclusion::SendTbPpdu,
+                        &TestPhyPaddingExclusion::SendHeTbPpdu,
                         this,
                         1,
                         1,
                         1000,
                         ppduWithPaddingDuration);
     Simulator::Schedule(Seconds(2),
-                        &TestPhyPaddingExclusion::SendTbPpdu,
+                        &TestPhyPaddingExclusion::SendHeTbPpdu,
                         this,
                         2,
                         2,
@@ -5843,14 +5461,14 @@ TestUlOfdmaPowerControl::SendMuBar(std::vector<uint16_t> staIds)
     muBar.SetApTxPower(static_cast<int8_t>(m_txPowerAp));
     muBar.SetUlSpatialReuse(60500);
 
-    RuType ru = (staIds.size() == 1) ? RuType::RU_242_TONE : RuType::RU_106_TONE;
+    HeRu::RuType ru = (staIds.size() == 1) ? HeRu::RU_242_TONE : HeRu::RU_106_TONE;
     std::size_t index = 1;
     int8_t ulTargetRssi = -40; // will be overwritten
     for (const auto& staId : staIds)
     {
         CtrlTriggerUserInfoField& ui = muBar.AddUserInfoField();
         ui.SetAid12(staId);
-        ui.SetRuAllocation(HeRu::RuSpec{ru, index, true});
+        ui.SetRuAllocation({ru, index, true});
         ui.SetUlFecCodingType(true);
         ui.SetUlMcs(7);
         ui.SetUlDcm(false);
@@ -5867,7 +5485,7 @@ TestUlOfdmaPowerControl::SendMuBar(std::vector<uint16_t> staIds)
         {
             NS_ABORT_MSG("Unknown STA-ID (" << staId << ")");
         }
-        ui.SetUlTargetRxPower(ulTargetRssi);
+        ui.SetUlTargetRssi(ulTargetRssi);
 
         CtrlBAckRequestHeader bar;
         bar.SetType(BlockAckReqType::COMPRESSED);
@@ -6028,7 +5646,7 @@ TestUlOfdmaPowerControl::DoSetup()
                 TimeValue(MicroSeconds(1024 * 600)));
     m_apDev = DynamicCast<WifiNetDevice>(wifi.Install(spectrumPhy, mac, apNode).Get(0));
     NS_ASSERT(m_apDev);
-    m_apDev->GetHeConfiguration()->m_bssColor = m_bssColor;
+    m_apDev->GetHeConfiguration()->SetAttribute("BssColor", UintegerValue(m_bssColor));
     m_phyAp = DynamicCast<SpectrumWifiPhy>(m_apDev->GetPhy());
     NS_ASSERT(m_phyAp);
     // ReceiveOkCallback of AP will be set to corresponding test's method once BA sessions have been
@@ -6235,13 +5853,11 @@ class WifiPhyOfdmaTestSuite : public TestSuite
 WifiPhyOfdmaTestSuite::WifiPhyOfdmaTestSuite()
     : TestSuite("wifi-phy-ofdma", Type::UNIT)
 {
-    AddTestCase(new TestDlOfdmaPhyTransmission<HePhy>(), TestCase::Duration::QUICK);
-    AddTestCase(new TestDlOfdmaPhyTransmission<EhtPhy>(), TestCase::Duration::QUICK);
+    AddTestCase(new TestDlOfdmaPhyTransmission, TestCase::Duration::QUICK);
     AddTestCase(new TestDlOfdmaPhyPuncturing, TestCase::Duration::QUICK);
     AddTestCase(new TestUlOfdmaPpduUid, TestCase::Duration::QUICK);
     AddTestCase(new TestMultipleHeTbPreambles, TestCase::Duration::QUICK);
-    AddTestCase(new TestUlOfdmaPhyTransmission<HePhy>(), TestCase::Duration::QUICK);
-    AddTestCase(new TestUlOfdmaPhyTransmission<EhtPhy>(), TestCase::Duration::QUICK);
+    AddTestCase(new TestUlOfdmaPhyTransmission, TestCase::Duration::QUICK);
     AddTestCase(new TestPhyPaddingExclusion, TestCase::Duration::QUICK);
     AddTestCase(new TestUlOfdmaPowerControl, TestCase::Duration::QUICK);
 }

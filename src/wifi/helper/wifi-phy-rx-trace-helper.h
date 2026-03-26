@@ -669,7 +669,8 @@ class WifiPhyRxTraceSink : public Object
      */
     void CountStatisticsForRecord(WifiPhyTraceStatistics& statistics,
                                   const WifiPpduRxRecord& record) const;
-};
+
+}; // class WifiPhyRxTraceSink
 
 // Non-member function declarations
 

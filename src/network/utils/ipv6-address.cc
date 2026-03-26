@@ -652,8 +652,7 @@ Ipv6Address::IsMatchingType(const Address& address)
     return address.CheckCompatible(GetType(), 16);
 }
 
-Ipv6Address::
-operator Address() const
+Ipv6Address::operator Address() const
 {
     return ConvertTo();
 }

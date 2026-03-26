@@ -89,18 +89,12 @@ HtCapabilities::ElementId() const
 void
 HtCapabilities::Print(std::ostream& os) const
 {
-    os << "HT Capabilities=[LDPC: " << +m_ldpc
-       << ", Supported Channel Width: " << +m_supportedChannelWidth
-       << ", SGI 20MHz: " << +m_shortGuardInterval20 << ", SGI 40MHz: " << +m_shortGuardInterval40
-       << ", Supported MCS Set: {";
+    os << "HT Capabilities=" << bool(GetLdpc()) << "|" << bool(GetSupportedChannelWidth()) << "|"
+       << bool(GetShortGuardInterval20()) << "|";
     for (uint8_t i = 0; i < MAX_SUPPORTED_MCS; i++)
     {
-        if (IsSupportedMcs(i))
-        {
-            os << +i << " ";
-        }
+        os << IsSupportedMcs(i) << " ";
     }
-    os << "}]";
 }
 
 void

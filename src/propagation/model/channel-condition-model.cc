@@ -983,4 +983,4 @@ ThreeGppNTNRuralChannelConditionModel::ComputePlos(Ptr<const MobilityModel> a,
     return SuburbanRuralLOSProb.at(quantizedElevAngle);
 }
 
-} // namespace ns3
+} // end namespace ns3

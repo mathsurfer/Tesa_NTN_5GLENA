@@ -35,12 +35,8 @@ class RadvdHelper : public ApplicationHelper
      * @param interface outgoing interface
      * @param prefix announced IPv6 prefix
      * @param prefixLength announced IPv6 prefix length
-     * @param slaac available for autoconfiguration
      */
-    void AddAnnouncedPrefix(uint32_t interface,
-                            const Ipv6Address& prefix,
-                            uint32_t prefixLength,
-                            bool slaac = true);
+    void AddAnnouncedPrefix(uint32_t interface, const Ipv6Address& prefix, uint32_t prefixLength);
 
     /**
      * @brief Enable the router as default router for the interface.

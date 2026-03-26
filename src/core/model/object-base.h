@@ -175,10 +175,9 @@ class ObjectBase
     /**
      * Get the most derived TypeId for this Object.
      *
-     * This method is provided by ns3::Object::GetInstanceTypeId
-     * but classes which derive from ns3::ObjectBase directly
-     * have to implement it themselves.  Typically, this method should
-     * simply return the output of `GetTypeId()`.
+     * This method is typically implemented by ns3::Object::GetInstanceTypeId
+     * but some classes which derive from ns3::ObjectBase directly
+     * have to implement it themselves.
      *
      * @return The TypeId associated to the most-derived type
      *          of this instance.

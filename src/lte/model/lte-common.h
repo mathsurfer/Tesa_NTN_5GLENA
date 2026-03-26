@@ -371,7 +371,8 @@ class EutranMeasurementMapping
      * \sa LteRrcSap::CellSelectionInfo
      */
     static double IeValue2ActualQQualMin(int8_t qQualMinIeValue);
-};
+
+}; // end of class EutranMeasurementMapping
 
 }; // namespace ns3
 

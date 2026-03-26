@@ -129,7 +129,8 @@ class UanMac : public Object
     uint32_t m_txModeIndex;
     /** The MAC address. */
     Mac8Address m_address;
-};
+
+}; // class UanMac
 
 } // namespace ns3
 

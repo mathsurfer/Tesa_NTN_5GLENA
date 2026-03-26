@@ -119,6 +119,7 @@ TcpBbr::TcpBbr(const TcpBbr& sock)
       m_isInitialized(sock.m_isInitialized),
       m_uv(sock.m_uv),
       m_delivered(sock.m_delivered),
+      m_appLimited(sock.m_appLimited),
       m_extraAckedGain(sock.m_extraAckedGain),
       m_extraAckedWinRtt(sock.m_extraAckedWinRtt),
       m_extraAckedWinRttLength(sock.m_extraAckedWinRttLength),
@@ -129,12 +130,6 @@ TcpBbr::TcpBbr(const TcpBbr& sock)
       m_hasSeenRtt(sock.m_hasSeenRtt)
 {
     NS_LOG_FUNCTION(this);
-}
-
-void
-TcpBbr::SetRateOps(Ptr<TcpRateOps> rateOps)
-{
-    m_rateOps = rateOps;
 }
 
 const char* const TcpBbr::BbrModeName[BBR_PROBE_RTT + 1] = {
@@ -420,7 +415,8 @@ TcpBbr::HandleProbeRTT(Ptr<TcpSocketState> tcb)
 {
     NS_LOG_FUNCTION(this << tcb);
 
-    m_rateOps->SetAppLimited(tcb->m_bytesInFlight.Get());
+    uint32_t totalBytes = m_delivered + tcb->m_bytesInFlight.Get();
+    m_appLimited = (totalBytes > 0 ? totalBytes : 1);
 
     if (m_probeRttDoneStamp.IsZero() && tcb->m_bytesInFlight <= m_minPipeCwnd)
     {
@@ -767,8 +763,7 @@ TcpBbr::CwndEvent(Ptr<TcpSocketState> tcb, const TcpSocketState::TcpCAEvent_t ev
         m_packetConservation = false;
         RestoreCwnd(tcb);
     }
-    else if (event == TcpSocketState::CA_EVENT_TX_START &&
-             m_rateOps->GetConnectionRate().m_appLimited)
+    else if (event == TcpSocketState::CA_EVENT_TX_START && m_appLimited)
     {
         NS_LOG_DEBUG("CwndEvent triggered to CA_EVENT_TX_START :: " << event);
         m_idleRestart = true;

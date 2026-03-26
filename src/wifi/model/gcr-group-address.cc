@@ -16,7 +16,7 @@ namespace ns3
 void
 GcrGroupAddress::Print(std::ostream& os) const
 {
-    os << "GCR Group Address=[" << m_gcrGroupAddress << "]";
+    os << "gcrGroupAddress=" << m_gcrGroupAddress;
 }
 
 WifiInformationElementId

@@ -283,9 +283,10 @@ RandomRoomPositionAllocator::GetNext() const
     double y2 = box.yMin + rdy * r.roomy;
     double z1 = box.zMin + rdz * (r.floor - 1);
     double z2 = box.zMin + rdz * r.floor;
-    NS_LOG_LOGIC("randomly allocating position in (" << x1 << "," << x2 << ") "
-                                                     << "x (" << y1 << "," << y2 << ") "
-                                                     << "x (" << z1 << "," << z2 << ") ");
+    NS_LOG_LOGIC("randomly allocating position in "
+                 << " (" << x1 << "," << x2 << ") "
+                 << "x (" << y1 << "," << y2 << ") "
+                 << "x (" << z1 << "," << z2 << ") ");
 
     double x = m_rand->GetValue(x1, x2);
     double y = m_rand->GetValue(y1, y2);
@@ -373,9 +374,10 @@ SameRoomPositionAllocator::GetNext() const
     double y2 = box.yMin + rdy * roomy;
     double z1 = box.zMin + rdz * (floor - 1);
     double z2 = box.zMin + rdz * floor;
-    NS_LOG_LOGIC("randomly allocating position in (" << x1 << "," << x2 << ") "
-                                                     << "x (" << y1 << "," << y2 << ") "
-                                                     << "x (" << z1 << "," << z2 << ") ");
+    NS_LOG_LOGIC("randomly allocating position in "
+                 << " (" << x1 << "," << x2 << ") "
+                 << "x (" << y1 << "," << y2 << ") "
+                 << "x (" << z1 << "," << z2 << ") ");
 
     double x = m_rand->GetValue(x1, x2);
     double y = m_rand->GetValue(y1, y2);
@@ -433,9 +435,10 @@ FixedRoomPositionAllocator::GetNext() const
     double y2 = box.yMin + rdy * roomy;
     double z1 = box.zMin + rdz * (floor - 1);
     double z2 = box.zMin + rdz * floor;
-    NS_LOG_LOGIC("randomly allocating position in (" << x1 << "," << x2 << ") "
-                                                     << "x (" << y1 << "," << y2 << ") "
-                                                     << "x (" << z1 << "," << z2 << ") ");
+    NS_LOG_LOGIC("randomly allocating position in "
+                 << " (" << x1 << "," << x2 << ") "
+                 << "x (" << y1 << "," << y2 << ") "
+                 << "x (" << z1 << "," << z2 << ") ");
 
     double x = m_rand->GetValue(x1, x2);
     double y = m_rand->GetValue(y1, y2);

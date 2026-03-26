@@ -879,15 +879,15 @@ TestInterBssConstantObssPdAlgo::RunOne()
         Ptr<HeConfiguration> heConfiguration = device->GetHeConfiguration();
         if (i == 0)
         {
-            heConfiguration->m_bssColor = m_bssColor1;
+            heConfiguration->SetAttribute("BssColor", UintegerValue(m_bssColor1));
         }
         else if (i == 1)
         {
-            heConfiguration->m_bssColor = m_bssColor2;
+            heConfiguration->SetAttribute("BssColor", UintegerValue(m_bssColor2));
         }
         else
         {
-            heConfiguration->m_bssColor = m_bssColor3;
+            heConfiguration->SetAttribute("BssColor", UintegerValue(m_bssColor3));
         }
     }
 

@@ -191,8 +191,7 @@ class LteHandoverFailureTestCase : public TestCase
     uint16_t m_targeteNodeBPosition;   ///< position of the target eNodeB
     bool m_hasHandoverFailureOccurred; ///< has handover failure occurred in simulation
 
-    // end of class LteHandoverFailureTestCase
-};
+}; // end of class LteHandoverFailureTestCase
 
 void
 LteHandoverFailureTestCase::DoRun()
@@ -294,7 +293,7 @@ LteHandoverFailureTestCase::DoRun()
 
     RngSeedManager::SetSeed(previousSeed);
     RngSeedManager::SetRun(previousRun);
-}
+} // end of void LteHandoverFailureTestCase::DoRun ()
 
 void
 LteHandoverFailureTestCase::UeHandoverStartCallback(std::string context,

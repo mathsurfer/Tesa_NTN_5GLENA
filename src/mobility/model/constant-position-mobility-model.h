@@ -33,12 +33,6 @@ class ConstantPositionMobilityModel : public MobilityModel
     ConstantPositionMobilityModel();
     ~ConstantPositionMobilityModel() override;
 
-    // Inherited from MobilityModel
-    Ptr<MobilityModel> Copy() const override
-    {
-        return CreateObject<ConstantPositionMobilityModel>(*this);
-    }
-
   private:
     Vector DoGetPosition() const override;
     void DoSetPosition(const Vector& position) override;

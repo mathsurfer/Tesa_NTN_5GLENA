@@ -181,4 +181,4 @@ BuildingsChannelConditionModel::AssignStreams(int64_t /* stream */)
     return 0;
 }
 
-} // namespace ns3
+} // end namespace ns3

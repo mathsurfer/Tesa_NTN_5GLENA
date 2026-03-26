@@ -228,6 +228,6 @@ gboolean clean_model_callback_config_default(GtkTreeModel* model,
                                              GtkTreePath* path,
                                              GtkTreeIter* iter,
                                              gpointer data);
-} // namespace ns3
+} // end namespace ns3
 
 #endif

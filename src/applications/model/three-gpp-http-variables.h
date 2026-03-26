@@ -329,7 +329,8 @@ class ThreeGppHttpVariables : public Object
      * Random variable for determining the length of parsing time (in seconds).
      */
     Ptr<ExponentialRandomVariable> m_parsingTimeRng;
-};
+
+}; // end of `class ThreeGppHttpVariables`
 
 } // namespace ns3
 

@@ -100,8 +100,6 @@ WifiPpdu::WifiPpdu(const WifiConstPsduMap& psdus,
     m_psdus = psdus;
 }
 
-WifiPpdu::~WifiPpdu() = default;
-
 const WifiTxVector&
 WifiPpdu::GetTxVector() const
 {

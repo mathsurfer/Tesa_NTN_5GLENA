@@ -384,6 +384,6 @@ MemberLteCcmRrcSapUser<C>::SetNumberOfComponentCarriers(uint16_t noOfComponentCa
     return m_owner->DoSetNumberOfComponentCarriers(noOfComponentCarriers);
 }
 
-} // namespace ns3
+} // end of namespace ns3
 
 #endif /* LTE_CCM_RRC_SAP_H */

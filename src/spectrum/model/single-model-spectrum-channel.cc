@@ -11,7 +11,6 @@
 #include "spectrum-phy.h"
 #include "spectrum-propagation-loss-model.h"
 #include "spectrum-transmit-filter.h"
-#include "wraparound-model.h"
 
 #include "ns3/angles.h"
 #include "ns3/antenna-model.h"
@@ -112,9 +111,7 @@ SingleModelSpectrumChannel::StartTx(Ptr<SpectrumSignalParameters> txParams)
         NS_ASSERT(*(txParams->psd->GetSpectrumModel()) == *m_spectrumModel);
     }
 
-    auto wraparound = GetObject<WraparoundModel>();
-    Ptr<MobilityModel> refSenderMobility = txParams->txPhy->GetMobility();
-    Ptr<MobilityModel> senderMobility = refSenderMobility;
+    Ptr<MobilityModel> senderMobility = txParams->txPhy->GetMobility();
 
     for (auto rxPhyIterator = m_phyList.begin(); rxPhyIterator != m_phyList.end(); ++rxPhyIterator)
     {
@@ -147,14 +144,6 @@ SingleModelSpectrumChannel::StartTx(Ptr<SpectrumSignalParameters> txParams)
 
             if (senderMobility && receiverMobility)
             {
-                if (wraparound)
-                {
-                    // Use virtual mobility model instead
-                    senderMobility =
-                        wraparound->GetVirtualMobilityModel(refSenderMobility, receiverMobility);
-                }
-                rxParams->txMobility = senderMobility;
-
                 double txAntennaGain = 0;
                 double rxAntennaGain = 0;
                 double propagationGainDb = 0;
@@ -239,7 +228,7 @@ SingleModelSpectrumChannel::StartRx(Ptr<SpectrumSignalParameters> params, Ptr<Sp
     {
         params->psd =
             m_spectrumPropagationLoss->CalcRxPowerSpectralDensity(params,
-                                                                  params->txMobility,
+                                                                  params->txPhy->GetMobility(),
                                                                   receiver->GetMobility());
     }
     receiver->StartRx(params);

@@ -22,7 +22,7 @@
 
 #include "log.h"
 
-#include <cstdlib>
+#include <stdlib.h>
 #include <sys/types.h>
 
 /**
@@ -347,7 +347,7 @@ enum fnv_type {
  * Share and Enjoy!	:-)
  */
 
-//#include <cstdlib>    //PDB
+//#include <stdlib.h>    //PDB
 //#include "fnv.h"       //PDB
 
 
@@ -495,7 +495,7 @@ fnv_32a_str(char *str, Fnv32_t hval)
  * Share and Enjoy!	:-)
  */
 
-//#include <cstdlib>    //PDB
+//#include <stdlib.h>    //PDB
 //#include "fnv.h"       //PDB
 
 

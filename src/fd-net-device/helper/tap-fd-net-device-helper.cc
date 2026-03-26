@@ -19,7 +19,6 @@
 #include "ns3/trace-helper.h"
 
 #include <arpa/inet.h>
-#include <cstdlib>
 #include <errno.h>
 #include <iomanip>
 #include <iostream>
@@ -29,6 +28,7 @@
 #include <net/if.h>
 #include <netinet/in.h>
 #include <netpacket/packet.h>
+#include <stdlib.h>
 #include <string.h>
 #include <string>
 #include <sys/ioctl.h>

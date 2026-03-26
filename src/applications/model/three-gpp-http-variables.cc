@@ -13,7 +13,7 @@
 #include "ns3/log.h"
 #include "ns3/uinteger.h"
 
-#include <cmath>
+#include <math.h>
 
 NS_LOG_COMPONENT_DEFINE("ThreeGppHttpVariables");
 
@@ -202,8 +202,9 @@ ThreeGppHttpVariables::GetMainObjectSize()
     // Validate parameters.
     if (m_mainObjectSizeMax <= m_mainObjectSizeMin)
     {
-        NS_FATAL_ERROR("`MainObjectSizeMax` attribute must be greater than the `MainObjectSizeMin` "
-                       "attribute.");
+        NS_FATAL_ERROR("`MainObjectSizeMax` attribute "
+                       << " must be greater than"
+                       << " the `MainObjectSizeMin` attribute.");
     }
 
     /*
@@ -232,8 +233,9 @@ ThreeGppHttpVariables::GetEmbeddedObjectSize()
     // Validate parameters.
     if (m_embeddedObjectSizeMax <= m_embeddedObjectSizeMin)
     {
-        NS_FATAL_ERROR("`EmbeddedObjectSizeMax` attribute must be greater than the "
-                       "`EmbeddedObjectSizeMin` attribute.");
+        NS_FATAL_ERROR("`EmbeddedObjectSizeMax` attribute "
+                       << " must be greater than"
+                       << " the `EmbeddedObjectSizeMin` attribute.");
     }
 
     /*
@@ -257,8 +259,9 @@ ThreeGppHttpVariables::GetNumOfEmbeddedObjects()
     const auto upperBound = static_cast<uint32_t>(m_numOfEmbeddedObjectsRng->GetBound());
     if (upperBound <= m_numOfEmbeddedObjectsScale)
     {
-        NS_FATAL_ERROR("`NumOfEmbeddedObjectsMax` attribute must be greater than the "
-                       "`NumOfEmbeddedObjectsScale` attribute.");
+        NS_FATAL_ERROR("`NumOfEmbeddedObjectsMax` attribute "
+                       << " must be greater than"
+                       << " the `NumOfEmbeddedObjectsScale` attribute.");
     }
 
     /*

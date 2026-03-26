@@ -313,7 +313,6 @@ AmpduAggregationTest::DoSetup()
         if (m_params.standard >= WIFI_STANDARD_80211ax)
         {
             HeCapabilities heCapabilities;
-            heCapabilities.SetChannelWidthSet(0x1);
             heCapabilities.SetMaxAmpduLength((1 << 23) - 1);
             m_managers.at(i)->AddStationHeCapabilities(Mac48Address("00:00:00:00:00:02"),
                                                        heCapabilities);

@@ -132,7 +132,6 @@ class TidToLinkMapping : public WifiInformationElement
     uint16_t GetInformationFieldSize() const override;
     void SerializeInformationField(Buffer::Iterator start) const override;
     uint16_t DeserializeInformationField(Buffer::Iterator start, uint16_t length) override;
-    void Print(std::ostream& os) const override;
 };
 
 } // namespace ns3

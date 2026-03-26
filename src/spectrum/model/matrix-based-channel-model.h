@@ -99,6 +99,15 @@ class MatrixBasedChannelModel : public Object
                           "arrays for which are provided IDs.");
             return (sAntennaId == bAntennaId && uAntennaId == aAntennaId);
         }
+        
+        
+        
+        
+        //The UE-GnB distance
+        double m_distance3D;
+        double m_distance2D;
+        
+        double m_antennaPower;
     };
 
     /**

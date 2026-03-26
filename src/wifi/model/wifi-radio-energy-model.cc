@@ -514,7 +514,7 @@ WifiRadioEnergyModelPhyListener::NotifyRxEndOk()
 }
 
 void
-WifiRadioEnergyModelPhyListener::NotifyRxEndError(const WifiTxVector& /* txVector */)
+WifiRadioEnergyModelPhyListener::NotifyRxEndError()
 {
     NS_LOG_FUNCTION(this);
     if (m_changeStateCallback.IsNull())

@@ -1087,45 +1087,32 @@ NeighborTable::GetParent(Ptr<NeighborTableEntry>& entryFound)
 bool
 NeighborTable::LookUpForBestParent(uint64_t epid, Ptr<NeighborTableEntry>& entryFound)
 {
-    bool parentFound = false;
+    bool flag = false;
     uint8_t currentLinkCost = 7;
     uint8_t prevLinkCost = 8;
-    bool first = true;
+
     for (const auto& entry : m_neighborTable)
     {
         // Note: Permit to join, stack profile , update id and capability are checked when
         //       the beacon is received (beacon notify indication)
         currentLinkCost = GetLinkCost(entry->GetLqi());
 
-        NS_LOG_DEBUG("Potential Parent: "
-                     << entry->GetNwkAddr() << " | LQI " << static_cast<uint16_t>(entry->GetLqi())
-                     << " | LinkCost " << static_cast<uint16_t>(currentLinkCost) << " | DevType "
-                     << entry->GetDeviceType());
-
-        // Select a parent device that fulfills at least these
-        // requirements, a minimum link cost of 3 is ideal but not enforced.
         if ((epid == entry->GetExtPanId()) &&
             (entry->GetDeviceType() == ZIGBEE_COORDINATOR ||
              entry->GetDeviceType() == ZIGBEE_ROUTER) &&
-            entry->IsPotentialParent())
+            (entry->IsPotentialParent()) && (currentLinkCost <= 3))
         {
-            if (first)
-            {
-                first = false;
-                entryFound = entry;
-                prevLinkCost = currentLinkCost;
-                parentFound = true;
-            }
-            else if (currentLinkCost < prevLinkCost)
+            if (currentLinkCost < prevLinkCost)
             {
                 entryFound = entry;
                 prevLinkCost = currentLinkCost;
             }
+            entryFound = entry;
+            flag = true;
         }
     }
 
-    NS_LOG_DEBUG("Parent Chosen: " << entryFound->GetNwkAddr());
-    return parentFound;
+    return flag;
 }
 
 void
@@ -1324,14 +1311,6 @@ BroadcastTransactionTable::LookUpEntry(uint8_t seq, Ptr<BroadcastTransactionReco
         }
     }
     return false;
-}
-
-void
-BroadcastTransactionTable::Delete(uint8_t seq)
-{
-    std::erase_if(m_broadcastTransactionTable, [&seq](Ptr<BroadcastTransactionRecord> entry) {
-        return entry->GetSeqNum() == seq;
-    });
 }
 
 void

@@ -734,7 +734,30 @@ class MatrixPropagationLossModel : public PropagationLossModel
 
     double m_default; //!< default loss
 
-    std::unordered_map<uint64_t, double> m_loss; //!< Propagation loss between pair of nodes
+    /// Typedef: Mobility models pair
+    typedef std::pair<const Ptr<MobilityModel>, const Ptr<MobilityModel>> MobilityPair;
+
+    /**
+     * @ingroup propagation
+     *
+     * @brief Hasher for a pair of mobility models.
+     */
+    class MobilityPairHasher
+    {
+      public:
+        /**
+         * @brief Get the hash for a MobilityPair.
+         * @param key MobilityPair reference to hash
+         * @return the MobilityPair hash
+         */
+        size_t operator()(const MobilityPair& key) const
+        {
+            return uint64_t(key.first.operator->()) ^ uint64_t(key.second.operator->());
+        }
+    };
+
+    std::unordered_map<MobilityPair, double, MobilityPairHasher>
+        m_loss; //!< Propagation loss between pair of nodes
 };
 
 /**

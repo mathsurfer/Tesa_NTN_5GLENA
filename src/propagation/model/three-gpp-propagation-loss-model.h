@@ -75,7 +75,7 @@ class ThreeGppPropagationLossModel : public PropagationLossModel
      */
     bool IsO2iLowPenetrationLoss(Ptr<const ChannelCondition> cond) const;
 
-  private:
+  public:
     /**
      * Computes the received power by applying the pathloss model described in
      * 3GPP TR 38.901
@@ -251,7 +251,7 @@ class ThreeGppPropagationLossModel : public PropagationLossModel
      */
     static Vector GetVectorDifference(Ptr<MobilityModel> a, Ptr<MobilityModel> b);
 
-  protected:
+  public:
     void DoDispose() override;
 
     /**

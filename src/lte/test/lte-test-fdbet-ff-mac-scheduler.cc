@@ -221,7 +221,6 @@ LenaFdBetFfMacSchedulerTestCase1::~LenaFdBetFfMacSchedulerTestCase1()
 void
 LenaFdBetFfMacSchedulerTestCase1::DoRun()
 {
-    SetDataDir(NS_TEST_SOURCEDIR);
     if (!m_errorModelEnabled)
     {
         Config::SetDefault("ns3::LteSpectrumPhy::CtrlErrorModelEnabled", BooleanValue(false));
@@ -404,7 +403,6 @@ void
 LenaFdBetFfMacSchedulerTestCase2::DoRun()
 {
     NS_LOG_FUNCTION(this);
-    SetDataDir(NS_TEST_SOURCEDIR);
 
     if (!m_errorModelEnabled)
     {

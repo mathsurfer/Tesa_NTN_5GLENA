@@ -37,7 +37,7 @@
 #include "ns3/three-gpp-propagation-loss-model.h"
 #include "ns3/three-gpp-spectrum-propagation-loss-model.h"
 #include "ns3/uniform-planar-array.h"
-
+#include "ns3/nr-ue-phy.h"
 #include <fstream>
 
 NS_LOG_COMPONENT_DEFINE("NTNChannelExample");
@@ -49,6 +49,32 @@ static Ptr<ThreeGppPropagationLossModel>
 static Ptr<ThreeGppSpectrumPropagationLossModel>
     m_spectrumLossModel;          //!< the SpectrumPropagationLossModel object
 static std::ofstream resultsFile; //!< The results file
+
+
+
+void DlSinrCb(std::string path,
+              uint16_t rnti,
+              uint16_t bwpId,
+              double sinr,
+              uint16_t ccId)
+{
+    // >>> ADD
+    double sinrDb = 10.0 * std::log10(sinr);
+    
+    
+    
+    
+std::cout <<"Sim SINR= "<<sinrDb;
+    
+    
+    }
+
+
+
+
+
+
+
 
 /**
  * @brief Create the PSD for the TX
@@ -278,11 +304,11 @@ ComputeSnr(ComputeSnrParams& params)
         ConstCast<AntennaModel, const AntennaModel>(params.txAntenna->GetAntennaElement());
 
     // apply the fast fading and the beamforming gain
-    rxSsp = m_spectrumLossModel->CalcRxPowerSpectralDensity(rxSsp,
+    /*rxSsp = m_spectrumLossModel->CalcRxPowerSpectralDensity(rxSsp,
                                                             params.txMob,
                                                             params.rxMob,
                                                             params.txAntenna,
-                                                            params.rxAntenna);
+                                                            params.rxAntenna);*/
     NS_LOG_DEBUG("Average rx power " << 10 * log10(Sum(*rxSsp->psd) * params.bandwidth) << " dB");
 
     // compute the SNR
@@ -292,12 +318,18 @@ ComputeSnr(ComputeSnrParams& params)
     resultsFile << Simulator::Now().GetSeconds() << " "
                 << 10 * log10(Sum(*rxSsp->psd) / Sum(*noisePsd)) << " " << propagationGainDb
                 << std::endl;
+                
+                
+                
+     //same but with cout
+     std::cout <<"\n SNR= "<<10 * log10(Sum(*rxSsp->psd) / Sum(*noisePsd)) ;
+     std::cout <<"\n propagationGainDb= "<<propagationGainDb ;
 }
 
 int
 main(int argc, char* argv[])
 {
-    uint32_t simTimeMs = 1000; // simulation time in milliseconds
+    uint32_t simTimeMs = 4000; // simulation time in milliseconds
     uint32_t timeResMs = 10;   // time resolution in milliseconds
 
     // Start changes with respect to three-gpp-channel-example
@@ -306,17 +338,17 @@ main(int argc, char* argv[])
     std::string scenario = "NTN-Suburban"; // 3GPP propagation scenario
     // All available NTN scenarios: DenseUrban, Urban, Suburban, Rural.
 
-    double frequencyHz = 20e9;    // operating frequency in Hz
-    double bandwidthHz = 400e6;   // Hz
+    double frequencyHz = 30e9;    // operating frequency in Hz
+    double bandwidthHz = 50e6;   // Hz
     double RbBandwidthHz = 120e3; // Hz
 
     // Satellite parameters
     double satEIRPDensity = 40;     // dBW/MHz
-    double satAntennaGainDb = 58.5; // dB
+    double satAntennaGainDb = 9; // dB
 
     // UE Parameters
-    double vsatAntennaGainDb = 39.7;       // dB
-    double vsatAntennaNoiseFigureDb = 1.2; // dB
+    double vsatAntennaGainDb = 16;       // dB
+    double vsatAntennaNoiseFigureDb = 5; // dB
     // End changes with respect to three-gpp-channel-example
 
     /* Command line argument parser setup. */
@@ -423,8 +455,8 @@ main(int argc, char* argv[])
     Ptr<GeocentricConstantPositionMobilityModel> rxMob =
         CreateObject<GeocentricConstantPositionMobilityModel>();
 
-    txMob->SetGeographicPosition(Vector(45.40869, 11.89448, 35786000)); // GEO over Padova
-    rxMob->SetGeographicPosition(Vector(45.40869, 11.89448, 14.0));     // Padova Coordinates
+    txMob->SetGeographicPosition(Vector(45.40869, 11.89448, 1200000)); // GEO over Padova
+    rxMob->SetGeographicPosition(Vector(45.40869, 11.89448, 0));     // Padova Coordinates
 
     // This is not strictly necessary, but is useful to have "sensible" values when using
     // GetPosition()
@@ -470,6 +502,10 @@ main(int argc, char* argv[])
     DoBeamforming(rxDev, rxAntenna, txDev);
     DoBeamforming(txDev, txAntenna, rxDev);
 
+
+Config::ConnectWithoutContextFailSafe("/NodeList/*/DeviceList/*/$ns3::NrUeNetDevice/""ComponentCarrierMapUe/*/NrUePhy/DlDataSinr",MakeCallback(&DlSinrCb));
+
+
     // Open the output results file
     resultsFile.open("ntn-snr-trace.txt", std::ios::out);
     NS_ASSERT_MSG(resultsFile.is_open(), "Results file could not be created");
@@ -487,7 +523,13 @@ main(int argc, char* argv[])
                                              frequencyHz,
                                              bandwidthHz,
                                              RbBandwidthHz));
+                                             
     }
+    
+    
+    // Connect DL pathloss callback using the UE-side SINR trace
+//Config::ConnectWithoutContextFailSafe("/NodeList/*/DeviceList/*/$ns3::NrUeNetDevice/""ComponentCarrierMapUe/*/NrUePhy/DlDataSinr",MakeCallback(&DlSinrCb));
+
 
     Simulator::Run();
     Simulator::Destroy();

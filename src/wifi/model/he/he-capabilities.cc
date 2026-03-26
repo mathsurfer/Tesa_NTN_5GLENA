@@ -128,8 +128,9 @@ HeCapabilities::ElementIdExt() const
 void
 HeCapabilities::Print(std::ostream& os) const
 {
-    os << "HE Capabilities=[Max AMPDU Length Exponent: " << +m_maxAmpduLengthExponent
-       << ", Channel Width Set: " << +m_channelWidthSet << "]";
+    os << "HE Capabilities=" << GetHeMacCapabilitiesInfo1() << "|" << +GetHeMacCapabilitiesInfo2()
+       << "|" << GetHePhyCapabilitiesInfo1() << "|" << GetHePhyCapabilitiesInfo2() << "|"
+       << +GetHePhyCapabilitiesInfo3() << "|" << GetSupportedMcsAndNss();
 }
 
 uint16_t

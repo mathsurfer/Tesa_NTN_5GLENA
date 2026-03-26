@@ -26,12 +26,6 @@ using namespace ns3;
 class PtrExample : public Object
 {
   public:
-    /**
-     * @brief Get the type ID.
-     * @return the object TypeId
-     */
-    static TypeId GetTypeId();
-
     /** Constructor. */
     PtrExample();
     /** Destructor. */
@@ -39,16 +33,6 @@ class PtrExample : public Object
     /** Example class method. */
     void Method();
 };
-
-NS_OBJECT_ENSURE_REGISTERED(PtrExample);
-
-TypeId
-PtrExample::GetTypeId()
-{
-    static TypeId tid =
-        TypeId("ns3::PtrExample").SetParent<Object>().SetGroupName("Core").HideFromDocumentation();
-    return tid;
-}
 
 PtrExample::PtrExample()
 {

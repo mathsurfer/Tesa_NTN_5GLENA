@@ -181,8 +181,9 @@ class LteFfrEnhancedAlgorithm : public LteFfrAlgorithm
 
     /// The expected measurement identity
     uint8_t m_measId;
-};
 
-} // namespace ns3
+}; // end of class LteFfrEnhancedAlgorithm
+
+} // end of namespace ns3
 
 #endif /* LTE_FFR_ENHANCED_ALGORITHM_H */

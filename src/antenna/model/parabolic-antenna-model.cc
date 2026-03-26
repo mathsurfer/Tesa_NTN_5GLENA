@@ -80,7 +80,7 @@ ParabolicAntennaModel::GetOrientation() const
 double
 ParabolicAntennaModel::GetGainDb(Angles a)
 {
-    NS_LOG_FUNCTION(this << a);
+  /*  NS_LOG_FUNCTION(this << a);
     // azimuth angle w.r.t. the reference system of the antenna
     double phi = a.GetAzimuth() - m_orientationRadians;
 
@@ -94,9 +94,17 @@ ParabolicAntennaModel::GetGainDb(Angles a)
         phi -= M_PI + M_PI;
     }
 
-    NS_LOG_LOGIC("phi = " << phi);
+    NS_LOG_LOGIC("phi = " << phi);*/
+     //double gainDb = -std::min(12 * pow(phi / m_beamwidthRadians, 2), m_maxAttenuation);
+   double m=  a.GetInclination();
+    double f=m*10e09; 
+    double eta=0.7;//Facteur d'efficacité statique ,entre 60% et 70% (ici 65%)
+    double D=1.2;//en mètres, entre 06 et 1.2m
+    double k=M_PI*D*f/3e08;
+    double gainDb = 10*log10(eta*k*k);
+    
 
-    double gainDb = -std::min(12 * pow(phi / m_beamwidthRadians, 2), m_maxAttenuation);
+   
 
     NS_LOG_LOGIC("gain = " << gainDb);
     return gainDb;

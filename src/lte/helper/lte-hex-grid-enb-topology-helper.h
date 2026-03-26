@@ -11,8 +11,6 @@
 
 #include "lte-helper.h"
 
-#include "ns3/wraparound-model.h"
-
 namespace ns3
 {
 
@@ -61,13 +59,6 @@ class LteHexGridEnbTopologyHelper : public Object
      */
     NetDeviceContainer SetPositionAndInstallEnbDevice(NodeContainer c);
 
-    /**
-     * @brief Get the configured wraparound model.
-     * If wraparound is not enabled, a null pointer is returned instead.
-     * @return a pointer to the wraparound model
-     */
-    Ptr<WraparoundModel> GetWraparoundModel() const;
-
   private:
     /**
      * Pointer to LteHelper object
@@ -105,16 +96,6 @@ class LteHexGridEnbTopologyHelper : public Object
      * The height [m] of each site
      */
     uint32_t m_siteHeight;
-
-    /**
-     * Boolean flag indicating whether to install or not wraparound model
-     */
-    bool m_installWraparound;
-
-    /**
-     * Wraparound model pointer
-     */
-    Ptr<WraparoundModel> m_wraparoundModel;
 };
 
 } // namespace ns3

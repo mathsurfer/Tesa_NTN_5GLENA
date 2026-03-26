@@ -110,6 +110,7 @@ class LtePrimaryCellChangeTestCase : public TestCase
 
     /// The current UE RRC state.
     std::map<uint64_t, LteUeRrc::State> m_lastState;
-};
+
+}; // end of class LtePrimaryCellChangeTestCase
 
 #endif /* LTE_TEST_PRIMARY_CELL_CHANGE_H */

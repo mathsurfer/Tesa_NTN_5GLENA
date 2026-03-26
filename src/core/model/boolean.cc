@@ -47,8 +47,7 @@ BooleanValue::Get() const
     return m_value;
 }
 
-BooleanValue::
-operator bool() const
+BooleanValue::operator bool() const
 {
     return m_value;
 }

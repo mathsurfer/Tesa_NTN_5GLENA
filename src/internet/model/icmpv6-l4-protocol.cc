@@ -145,6 +145,13 @@ Icmpv6L4Protocol::GetTypeId()
     return tid;
 }
 
+TypeId
+Icmpv6L4Protocol::GetInstanceTypeId() const
+{
+    NS_LOG_FUNCTION(this);
+    return Icmpv6L4Protocol::GetTypeId();
+}
+
 Icmpv6L4Protocol::Icmpv6L4Protocol()
     : m_node(nullptr)
 {
@@ -168,7 +175,6 @@ Icmpv6L4Protocol::DoDispose()
     }
     m_cacheList.clear();
     m_downTarget.Nullify();
-    m_startDhcpv6.Nullify();
 
     m_node = nullptr;
     IpL4Protocol::DoDispose();

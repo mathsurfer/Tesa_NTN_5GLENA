@@ -48,7 +48,6 @@ class WifiMpdu;
    \endverbatim
 */
 // clang-format on
-
 /**
  *
  * See also OriginatorBlockAckAgreement::State

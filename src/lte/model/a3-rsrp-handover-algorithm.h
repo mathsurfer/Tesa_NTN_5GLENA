@@ -108,8 +108,9 @@ class A3RsrpHandoverAlgorithm : public LteHandoverAlgorithm
     LteHandoverManagementSapUser* m_handoverManagementSapUser;
     /// Receive API calls from the eNodeB RRC instance.
     LteHandoverManagementSapProvider* m_handoverManagementSapProvider;
-};
 
-} // namespace ns3
+}; // end of class A3RsrpHandoverAlgorithm
+
+} // end of namespace ns3
 
 #endif /* A3_RSRP_HANDOVER_ALGORITHM_H */

@@ -12,7 +12,6 @@
 
 #include "ns3/abort.h"
 #include "ns3/double.h"
-#include "ns3/hexagonal-wraparound-model.h"
 #include "ns3/log.h"
 #include "ns3/pointer.h"
 
@@ -73,12 +72,7 @@ LteHexGridEnbTopologyHelper::GetTypeId()
                 "The number of sites in even rows (odd rows will have one additional site).",
                 UintegerValue(1),
                 MakeUintegerAccessor(&LteHexGridEnbTopologyHelper::m_gridWidth),
-                MakeUintegerChecker<uint32_t>())
-            .AddAttribute("EnableWraparound",
-                          "Enable hexagonal wraparound model.",
-                          BooleanValue(false),
-                          MakeBooleanAccessor(&LteHexGridEnbTopologyHelper::m_installWraparound),
-                          MakeBooleanChecker());
+                MakeUintegerChecker<uint32_t>());
     return tid;
 }
 
@@ -101,13 +95,6 @@ LteHexGridEnbTopologyHelper::SetPositionAndInstallEnbDevice(NodeContainer c)
 {
     NS_LOG_FUNCTION(this);
     NetDeviceContainer enbDevs;
-    Ptr<HexagonalWraparoundModel> wraparoundModel;
-    if (m_installWraparound)
-    {
-        wraparoundModel = CreateObject<HexagonalWraparoundModel>();
-        wraparoundModel->SetSiteDistance(m_d);
-        wraparoundModel->SetNumSites(c.GetN() / 3);
-    }
     const double xydfactor = std::sqrt(0.75);
     double yd = xydfactor * m_d;
     for (uint32_t n = 0; n < c.GetN(); ++n)
@@ -168,22 +155,8 @@ LteHexGridEnbTopologyHelper::SetPositionAndInstallEnbDevice(NodeContainer c)
         mm->SetPosition(Vector(x, y, m_siteHeight));
         m_lteHelper->SetEnbAntennaModelAttribute("Orientation", DoubleValue(antennaOrientation));
         enbDevs.Add(m_lteHelper->InstallEnbDevice(node));
-        if (m_installWraparound && (n % 3 == 0))
-        {
-            wraparoundModel->AddSitePosition(mm->GetPosition());
-        }
-    }
-    if (m_installWraparound)
-    {
-        m_wraparoundModel = wraparoundModel;
     }
     return enbDevs;
-}
-
-Ptr<WraparoundModel>
-LteHexGridEnbTopologyHelper::GetWraparoundModel() const
-{
-    return m_wraparoundModel;
 }
 
 } // namespace ns3

@@ -38,6 +38,12 @@ TcpOptionTS::GetTypeId()
     return tid;
 }
 
+TypeId
+TcpOptionTS::GetInstanceTypeId() const
+{
+    return GetTypeId();
+}
+
 void
 TcpOptionTS::Print(std::ostream& os) const
 {

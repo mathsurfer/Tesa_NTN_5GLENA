@@ -38,6 +38,12 @@ TcpOptionWinScale::GetTypeId()
     return tid;
 }
 
+TypeId
+TcpOptionWinScale::GetInstanceTypeId() const
+{
+    return GetTypeId();
+}
+
 void
 TcpOptionWinScale::Print(std::ostream& os) const
 {

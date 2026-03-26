@@ -68,6 +68,12 @@ EventId::IsPending() const
     return !IsExpired();
 }
 
+bool
+EventId::IsRunning() const
+{
+    return IsPending();
+}
+
 EventImpl*
 EventId::PeekEventImpl() const
 {

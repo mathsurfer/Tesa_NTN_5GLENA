@@ -43,7 +43,8 @@ class ParabolicAntennaModel : public AntennaModel
 
     // inherited from AntennaModel
     double GetGainDb(Angles a) override;
-
+     void SetGain_Db(double a) ;
+     double GetGain_Db(double a) ;
     // attribute getters/setters
     /**
      * Set the Beam width
@@ -70,6 +71,7 @@ class ParabolicAntennaModel : public AntennaModel
     double m_beamwidthRadians;   //!< Beam width in radians
     double m_orientationRadians; //!< Antenna orientation in radians
     double m_maxAttenuation;     //!< Max attenuation
+    double m_gain;     //!< Gain (added)
 };
 
 } // namespace ns3

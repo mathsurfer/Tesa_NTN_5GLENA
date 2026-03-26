@@ -99,6 +99,11 @@ UniformPlanarArray::GetTypeId()
     return tid;
 }
 
+
+
+
+
+
 void
 UniformPlanarArray::SetNumColumns(uint32_t n)
 {
@@ -138,37 +143,28 @@ UniformPlanarArray::GetNumRows() const
 void
 UniformPlanarArray::SetAlpha(double alpha)
 {
-    if (alpha != m_alpha)
-    {
-        m_alpha = alpha;
-        m_cosAlpha = cos(m_alpha);
-        m_sinAlpha = sin(m_alpha);
-        InvalidateChannels();
-    }
+    m_alpha = alpha;
+    m_cosAlpha = cos(m_alpha);
+    m_sinAlpha = sin(m_alpha);
+    InvalidateChannels();
 }
 
 void
 UniformPlanarArray::SetBeta(double beta)
 {
-    if (beta != m_beta)
-    {
-        m_beta = beta;
-        m_cosBeta = cos(m_beta);
-        m_sinBeta = sin(m_beta);
-        InvalidateChannels();
-    }
+    m_beta = beta;
+    m_cosBeta = cos(m_beta);
+    m_sinBeta = sin(m_beta);
+    InvalidateChannels();
 }
 
 void
 UniformPlanarArray::SetPolSlant(double polSlant)
 {
-    if (polSlant != m_polSlant)
-    {
-        m_polSlant = polSlant;
-        m_cosPolSlant[0] = cos(m_polSlant);
-        m_sinPolSlant[0] = sin(m_polSlant);
-        InvalidateChannels();
-    }
+    m_polSlant = polSlant;
+    m_cosPolSlant[0] = cos(m_polSlant);
+    m_sinPolSlant[0] = sin(m_polSlant);
+    InvalidateChannels();
 }
 
 void
@@ -307,11 +303,8 @@ UniformPlanarArray::SetNumVerticalPorts(uint16_t nPorts)
     NS_ASSERT_MSG(nPorts > 0, "Ports should be greater than 0");
     NS_ASSERT_MSG(((m_numRows % nPorts) == 0),
                   "The number of vertical ports must divide number of rows");
-    if (nPorts != m_numVPorts)
-    {
-        m_numVPorts = nPorts;
-        InvalidateChannels();
-    }
+    m_numVPorts = nPorts;
+    InvalidateChannels();
 }
 
 void
@@ -320,11 +313,8 @@ UniformPlanarArray::SetNumHorizontalPorts(uint16_t nPorts)
     NS_ASSERT_MSG(nPorts > 0, "Ports should be greater than 0");
     NS_ASSERT_MSG(((m_numColumns % nPorts) == 0),
                   "The number of horizontal ports must divide number of columns");
-    if (nPorts != m_numHPorts)
-    {
-        m_numHPorts = nPorts;
-        InvalidateChannels();
-    }
+    m_numHPorts = nPorts;
+    InvalidateChannels();
 }
 
 uint16_t
@@ -398,16 +388,13 @@ UniformPlanarArray::IsDualPol() const
 void
 UniformPlanarArray::SetDualPol(bool isDualPol)
 {
-    if (isDualPol != m_isDualPolarized)
+    m_isDualPolarized = isDualPol;
+    if (isDualPol)
     {
-        m_isDualPolarized = isDualPol;
-        if (isDualPol)
-        {
-            m_cosPolSlant[1] = cos(m_polSlant - M_PI / 2);
-            m_sinPolSlant[1] = sin(m_polSlant - M_PI / 2);
-        }
-        InvalidateChannels();
+        m_cosPolSlant[1] = cos(m_polSlant - M_PI / 2);
+        m_sinPolSlant[1] = sin(m_polSlant - M_PI / 2);
     }
+    InvalidateChannels();
 }
 
 double

@@ -28,14 +28,8 @@ PointToPointEpcHelper::PointToPointEpcHelper()
     : NoBackhaulEpcHelper()
 {
     NS_LOG_FUNCTION(this);
-}
-
-void
-PointToPointEpcHelper::NotifyConstructionCompleted()
-{
-    NoBackhaulEpcHelper::NotifyConstructionCompleted();
-
-    NS_LOG_FUNCTION(this);
+    // To access the attribute value within the constructor
+    ObjectBase::ConstructSelf(AttributeConstructionList());
 
     // since we use point-to-point links for the backhaul links,
     // we use a /30 subnet which can hold exactly two addresses
@@ -86,6 +80,12 @@ PointToPointEpcHelper::GetTypeId()
                           MakeBooleanAccessor(&PointToPointEpcHelper::m_s1uLinkEnablePcap),
                           MakeBooleanChecker());
     return tid;
+}
+
+TypeId
+PointToPointEpcHelper::GetInstanceTypeId() const
+{
+    return GetTypeId();
 }
 
 void

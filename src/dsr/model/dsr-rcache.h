@@ -673,8 +673,7 @@ class DsrRouteCache : public Object
 
         Neighbor()
         {
-            // For Python bindings
-        }
+        } // For Python bindings
     };
 
     /**

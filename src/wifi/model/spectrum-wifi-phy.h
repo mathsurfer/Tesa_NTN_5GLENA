@@ -33,7 +33,7 @@ class WifiSpectrumPhyInterface;
 struct WifiSpectrumSignalParameters;
 
 /// Map a spectrum band associated with an RU to the RU specification
-using RuBands = std::map<WifiSpectrumBandInfo, WifiRu::RuSpec>;
+using HeRuBands = std::map<WifiSpectrumBandInfo, HeRu::RuSpec>;
 
 /**
  * @brief 802.11 PHY layer model
@@ -226,7 +226,8 @@ class SpectrumWifiPhy : public WifiPhy
      * @param guardBandwidth width of the guard band
      * @returns the computed RU bands for the spectrum PHY interface
      */
-    RuBands GetRuBands(Ptr<WifiSpectrumPhyInterface> spectrumPhyInterface, MHz_u guardBandwidth);
+    HeRuBands GetHeRuBands(Ptr<WifiSpectrumPhyInterface> spectrumPhyInterface,
+                           MHz_u guardBandwidth);
 
     /**
      * This function computes the bands that belong to a given spectrum PHY interface.

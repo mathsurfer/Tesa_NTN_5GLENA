@@ -38,6 +38,12 @@ TcpOptionEnd::GetTypeId()
     return tid;
 }
 
+TypeId
+TcpOptionEnd::GetInstanceTypeId() const
+{
+    return GetTypeId();
+}
+
 void
 TcpOptionEnd::Print(std::ostream& os) const
 {
@@ -102,6 +108,12 @@ TcpOptionNOP::GetTypeId()
     return tid;
 }
 
+TypeId
+TcpOptionNOP::GetInstanceTypeId() const
+{
+    return GetTypeId();
+}
+
 void
 TcpOptionNOP::Print(std::ostream& os) const
 {
@@ -164,6 +176,12 @@ TcpOptionMSS::GetTypeId()
                             .SetGroupName("Internet")
                             .AddConstructor<TcpOptionMSS>();
     return tid;
+}
+
+TypeId
+TcpOptionMSS::GetInstanceTypeId() const
+{
+    return GetTypeId();
 }
 
 void

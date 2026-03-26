@@ -227,8 +227,7 @@ PointerValue::Get() const
 }
 
 template <typename T>
-PointerValue::
-operator Ptr<T>() const
+PointerValue::operator Ptr<T>() const
 {
     return Get<T>();
 }

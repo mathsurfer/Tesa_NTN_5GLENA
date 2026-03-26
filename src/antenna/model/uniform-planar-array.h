@@ -259,6 +259,12 @@ class UniformPlanarArray : public PhasedArrayModel
      * @param elemIndex the antenna element index
      * @return the polarization index
      */
+     
+     double ComputeGain(Ptr<UniformPlanarArray> a);
+
+     
+     
+     
     uint8_t GetElemPol(size_t elemIndex) const override;
 
   private:

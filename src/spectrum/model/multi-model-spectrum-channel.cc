@@ -12,7 +12,6 @@
 #include "spectrum-phy.h"
 #include "spectrum-propagation-loss-model.h"
 #include "spectrum-transmit-filter.h"
-#include "wraparound-model.h"
 
 #include "ns3/angles.h"
 #include "ns3/antenna-model.h"
@@ -226,9 +225,7 @@ MultiModelSpectrumChannel::StartTx(Ptr<SpectrumSignalParameters> txParams)
                                            // potential underlying DynamicCasts)
     m_txSigParamsTrace(txParamsTrace);
 
-    auto wraparound = GetObject<WraparoundModel>();
-    auto refTxMobility = txParams->txPhy->GetMobility();
-    auto txMobility = refTxMobility;
+    auto txMobility = txParams->txPhy->GetMobility();
     const auto txSpectrumModelUid = txParams->psd->GetSpectrumModelUid();
     NS_LOG_LOGIC("txSpectrumModelUid " << txSpectrumModelUid);
 
@@ -324,14 +321,6 @@ MultiModelSpectrumChannel::StartTx(Ptr<SpectrumSignalParameters> txParams)
 
                 if (txMobility && receiverMobility)
                 {
-                    if (wraparound)
-                    {
-                        // Use virtual mobility model instead
-                        txMobility =
-                            wraparound->GetVirtualMobilityModel(refTxMobility, receiverMobility);
-                    }
-                    rxParams->txMobility = txMobility;
-
                     if (rxParams->txAntenna)
                     {
                         Angles txAngles(receiverMobility->GetPosition(), txMobility->GetPosition());
@@ -424,7 +413,7 @@ MultiModelSpectrumChannel::StartRx(
         }
     }
 
-    auto txMobility = params->txMobility;
+    auto txMobility = params->txPhy->GetMobility();
     auto rxMobility = receiver->GetMobility();
     if (txMobility && rxMobility)
     {
@@ -479,6 +468,9 @@ MultiModelSpectrumChannel::StartRx(
         {
             auto txPhasedArrayModel = DynamicCast<PhasedArrayModel>(params->txPhy->GetAntenna());
             auto rxPhasedArrayModel = DynamicCast<PhasedArrayModel>(receiver->GetAntenna());
+
+
+
 
             NS_ASSERT_MSG(txPhasedArrayModel && rxPhasedArrayModel,
                           "PhasedArrayModel instances should be installed at both TX and RX "

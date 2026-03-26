@@ -847,7 +847,8 @@ class LteHelper : public Object
      * Number of component carriers that will be installed by default at eNodeB and UE devices.
      */
     uint16_t m_noOfCcs;
-};
+
+}; // end of `class LteHelper`
 
 } // namespace ns3
 

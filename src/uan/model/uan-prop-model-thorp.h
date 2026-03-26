@@ -55,7 +55,8 @@ class UanPropModelThorp : public UanPropModel
     double GetAttenDbKm(double freqKhz);
 
     double m_SpreadCoef; //!< Spreading coefficient used in calculation of Thorp's approximation.
-};
+
+}; // class UanPropModelThorp
 
 } // namespace ns3
 

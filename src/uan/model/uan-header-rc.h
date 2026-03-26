@@ -93,8 +93,7 @@ class UanHeaderRcData : public Header
     uint8_t m_frameNo; //!< Data frame number.
     Time m_propDelay;  //!< Propagation delay.
 
-    // end of class UanHeaderRcData
-};
+}; // class UanHeaderRcData
 
 /**
  * @ingroup uan
@@ -215,8 +214,7 @@ class UanHeaderRcRts : public Header
     Time m_timeStamp;   //!< RTS TX timestamp.
     uint8_t m_retryNo;  //!< Retry number of RTS packet.
 
-    // end of class UanHeaderRcRts
-};
+}; // class UanHeaderRcRts
 
 /**
  * @ingroup uan
@@ -319,8 +317,7 @@ class UanHeaderRcCtsGlobal : public Header
     uint16_t m_retryRate; //!< Retry rate.
     uint16_t m_rateNum;   //!< Rate number.
 
-    // end of class UanHeaderRcCtsGlobal
-};
+}; // class UanHeaderRcCtsGlobal
 
 /**
  * @ingroup uan
@@ -439,8 +436,7 @@ class UanHeaderRcCts : public Header
     Time m_delay;          //!< Delay until transmission.
     Mac8Address m_address; //!< Destination of CTS packet.
 
-    // end of class UanHeaderRcCts
-};
+}; // class UanHeaderRcCts
 
 /**
  * @ingroup uan
@@ -504,8 +500,7 @@ class UanHeaderRcAck : public Header
     uint8_t m_frameNo;                //!< Next frame number.
     std::set<uint8_t> m_nackedFrames; //!< Marker for nacked frames.
 
-    // end of class UanHeaderRcAck
-};
+}; // class UanHeaderRcAck
 
 } // namespace ns3
 

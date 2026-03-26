@@ -71,4 +71,4 @@ ModelTypeidCreator::EndVisitTypeId()
 {
     Remove();
 }
-} // namespace ns3
+} // end namespace ns3

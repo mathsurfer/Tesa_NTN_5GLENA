@@ -33,12 +33,11 @@ HeOperation::ElementIdExt() const
 void
 HeOperation::HeOperationParams::Print(std::ostream& os) const
 {
-    os << "HE Operation=[Default PE Duration: " << +m_defaultPeDuration
-       << ", TWT Required: " << +m_twtRequired
-       << ", TXOP Duration RTS Threshold: " << m_txopDurRtsThresh
-       << ", VHT Operation Information Present: " << +m_vhOpPresent
-       << ", Co-Hosted BSS: " << +m_coHostedBss << ", ER SU Disable: " << +m_erSuDisable
-       << ", 6 GHz Operation Information Present: " << m_6GHzOpPresent << "]";
+    os << "Default PE Duration: " << +m_defaultPeDuration << " TWT Required: " << +m_twtRequired
+       << " TXOP Duration RTS Threshold: " << m_txopDurRtsThresh
+       << " VHT Operation Information Present: " << +m_vhOpPresent
+       << " Co-Hosted BSS: " << +m_coHostedBss << " ER SU Disable: " << +m_erSuDisable
+       << " 6 GHz Operation Information Present: " << m_6GHzOpPresent;
 }
 
 uint16_t

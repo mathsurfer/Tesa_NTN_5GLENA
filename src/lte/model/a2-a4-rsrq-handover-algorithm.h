@@ -139,6 +139,7 @@ class A2A4RsrqHandoverAlgorithm : public LteHandoverAlgorithm
     {
       public:
         uint16_t m_cellId; ///< Cell ID.
+        uint8_t m_rsrp;    ///< RSRP in quantized format. \todo Can be removed?
         uint8_t m_rsrq;    ///< RSRQ in quantized format.
     };
 
@@ -176,8 +177,9 @@ class A2A4RsrqHandoverAlgorithm : public LteHandoverAlgorithm
     LteHandoverManagementSapUser* m_handoverManagementSapUser;
     /// Receive API calls from the eNodeB RRC instance.
     LteHandoverManagementSapProvider* m_handoverManagementSapProvider;
-};
 
-} // namespace ns3
+}; // end of class A2A4RsrqHandoverAlgorithm
+
+} // end of namespace ns3
 
 #endif /* A2_A4_RSRQ_HANDOVER_ALGORITHM_H */

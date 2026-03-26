@@ -92,8 +92,8 @@ TestDlMuTxVector::DoRun()
 {
     // Verify TxVector is OFDMA
     std::list<HeMuUserInfo> userInfos;
-    userInfos.push_back({HeRu::RuSpec{RuType::RU_106_TONE, 1, true}, 11, 1});
-    userInfos.push_back({HeRu::RuSpec{RuType::RU_106_TONE, 2, true}, 10, 2});
+    userInfos.push_back({{HeRu::RU_106_TONE, 1, true}, 11, 1});
+    userInfos.push_back({{HeRu::RU_106_TONE, 2, true}, 10, 2});
     WifiTxVector txVector = BuildTxVector(MHz_u{20}, userInfos);
     NS_TEST_EXPECT_MSG_EQ(txVector.IsDlOfdma(),
                           true,
@@ -110,9 +110,8 @@ TestDlMuTxVector::DoRun()
     userInfos.clear();
 
     // Verify TxVector is a full BW MU-MIMO
-    auto ru = HeRu::RuSpec{RuType::RU_242_TONE, 1, true};
-    userInfos.push_back({ru, 11, 1});
-    userInfos.push_back({ru, 10, 2});
+    userInfos.push_back({{HeRu::RU_242_TONE, 1, true}, 11, 1});
+    userInfos.push_back({{HeRu::RU_242_TONE, 1, true}, 10, 2});
     txVector = BuildTxVector(MHz_u{20}, userInfos);
     NS_TEST_EXPECT_MSG_EQ(txVector.IsDlOfdma(),
                           false,
@@ -129,16 +128,15 @@ TestDlMuTxVector::DoRun()
     userInfos.clear();
 
     // Verify TxVector is not valid if there are more than 8 STAs using the same RU
-    ru = HeRu::RuSpec{RuType::RU_242_TONE, 1, true};
-    userInfos.push_back({ru, 11, 1});
-    userInfos.push_back({ru, 10, 1});
-    userInfos.push_back({ru, 9, 1});
-    userInfos.push_back({ru, 8, 1});
-    userInfos.push_back({ru, 7, 1});
-    userInfos.push_back({ru, 6, 1});
-    userInfos.push_back({ru, 5, 1});
-    userInfos.push_back({ru, 4, 1});
-    userInfos.push_back({ru, 3, 1});
+    userInfos.push_back({{HeRu::RU_242_TONE, 1, true}, 11, 1});
+    userInfos.push_back({{HeRu::RU_242_TONE, 1, true}, 10, 1});
+    userInfos.push_back({{HeRu::RU_242_TONE, 1, true}, 9, 1});
+    userInfos.push_back({{HeRu::RU_242_TONE, 1, true}, 8, 1});
+    userInfos.push_back({{HeRu::RU_242_TONE, 1, true}, 7, 1});
+    userInfos.push_back({{HeRu::RU_242_TONE, 1, true}, 6, 1});
+    userInfos.push_back({{HeRu::RU_242_TONE, 1, true}, 5, 1});
+    userInfos.push_back({{HeRu::RU_242_TONE, 1, true}, 4, 1});
+    userInfos.push_back({{HeRu::RU_242_TONE, 1, true}, 3, 1});
     txVector = BuildTxVector(MHz_u{20}, userInfos);
     NS_TEST_EXPECT_MSG_EQ(txVector.IsDlOfdma(),
                           false,
@@ -154,10 +152,10 @@ TestDlMuTxVector::DoRun()
                           "TX-VECTOR should not indicate all checks are passed");
 
     // Verify TxVector is not valid if the total number of antennas in a full BW MU-MIMO is above 8
-    userInfos.push_back({ru, 11, 2});
-    userInfos.push_back({ru, 10, 2});
-    userInfos.push_back({ru, 9, 3});
-    userInfos.push_back({ru, 8, 3});
+    userInfos.push_back({{HeRu::RU_242_TONE, 1, true}, 11, 2});
+    userInfos.push_back({{HeRu::RU_242_TONE, 1, true}, 10, 2});
+    userInfos.push_back({{HeRu::RU_242_TONE, 1, true}, 9, 3});
+    userInfos.push_back({{HeRu::RU_242_TONE, 1, true}, 8, 3});
     txVector = BuildTxVector(MHz_u{20}, userInfos);
     NS_TEST_EXPECT_MSG_EQ(txVector.IsDlOfdma(),
                           false,
@@ -205,9 +203,7 @@ class MuMimoTestHePhy : public HePhy
 
   private:
     uint16_t m_staId; ///< ID of the STA to which this PHY belongs to
-
-    // end of class MuMimoTestHePhy
-};
+};                    // class MuMimoTestHePhy
 
 MuMimoTestHePhy::MuMimoTestHePhy(uint16_t staId)
     : HePhy(),
@@ -273,11 +269,8 @@ class MuMimoSpectrumWifiPhy : public SpectrumWifiPhy
     void DoInitialize() override;
     void DoDispose() override;
 
-    std::shared_ptr<MuMimoTestHePhy>
-        m_ofdmTestHePhy; ///< Pointer to HE PHY instance used for MU-MIMO test
-
-    // end of class MuMimoSpectrumWifiPhy
-};
+    Ptr<MuMimoTestHePhy> m_ofdmTestHePhy; ///< Pointer to HE PHY instance used for MU-MIMO test
+};                                        // class MuMimoSpectrumWifiPhy
 
 TypeId
 MuMimoSpectrumWifiPhy::GetTypeId()
@@ -290,7 +283,7 @@ MuMimoSpectrumWifiPhy::GetTypeId()
 MuMimoSpectrumWifiPhy::MuMimoSpectrumWifiPhy(uint16_t staId)
     : SpectrumWifiPhy()
 {
-    m_ofdmTestHePhy = std::make_shared<MuMimoTestHePhy>(staId);
+    m_ofdmTestHePhy = Create<MuMimoTestHePhy>(staId);
     m_ofdmTestHePhy->SetOwner(this);
 }
 
@@ -546,7 +539,7 @@ TestDlMuMimoPhyTransmission::SendMuPpdu(const std::vector<StaInfo>& staInfos)
                                          false);
 
     WifiConstPsduMap psdus;
-    HeRu::RuSpec ru(WifiRu::GetRuType(m_channelWidth), 1, true); // full BW MU-MIMO
+    HeRu::RuSpec ru(HeRu::GetRuType(m_channelWidth), 1, true); // full BW MU-MIMO
     for (const auto& staInfo : staInfos)
     {
         txVector.SetRu(ru, staInfo.staId);
@@ -1336,7 +1329,7 @@ TestUlMuMimoPhyTransmission::GetTxVectorForHeTbPpdu(uint16_t txStaId,
                                          false,
                                          bssColor);
 
-    HeRu::RuSpec ru(WifiRu::GetRuType(m_channelWidth), 1, true); // full BW MU-MIMO
+    HeRu::RuSpec ru(HeRu::GetRuType(m_channelWidth), 1, true); // full BW MU-MIMO
     txVector.SetRu(ru, txStaId);
     txVector.SetMode(HePhy::GetHeMcs7(), txStaId);
     txVector.SetNss(nss, txStaId);
@@ -1360,7 +1353,7 @@ TestUlMuMimoPhyTransmission::SetTrigVector(const std::vector<uint16_t>& staIds, 
                           false,
                           bssColor);
 
-    HeRu::RuSpec ru(WifiRu::GetRuType(m_channelWidth), 1, true); // full BW MU-MIMO
+    HeRu::RuSpec ru(HeRu::GetRuType(m_channelWidth), 1, true); // full BW MU-MIMO
     for (auto staId : staIds)
     {
         txVector.SetRu(ru, staId);
@@ -1374,7 +1367,7 @@ TestUlMuMimoPhyTransmission::SetTrigVector(const std::vector<uint16_t>& staIds, 
                                                    txVector,
                                                    m_phyAp->GetPhyBand());
     txVector.SetLength(length);
-    auto hePhyAp = std::dynamic_pointer_cast<HePhy>(m_phyAp->GetPhyEntity(WIFI_MOD_CLASS_HE));
+    auto hePhyAp = DynamicCast<HePhy>(m_phyAp->GetPhyEntity(WIFI_MOD_CLASS_HE));
     hePhyAp->SetTrigVector(txVector, m_expectedPpduDuration);
 }
 
@@ -1539,7 +1532,7 @@ TestUlMuMimoPhyTransmission::SetBssColor(Ptr<WifiPhy> phy, uint8_t bssColor)
 {
     Ptr<WifiNetDevice> device = DynamicCast<WifiNetDevice>(phy->GetDevice());
     Ptr<HeConfiguration> heConfiguration = device->GetHeConfiguration();
-    heConfiguration->m_bssColor = bssColor;
+    heConfiguration->SetAttribute("BssColor", UintegerValue(bssColor));
 }
 
 void

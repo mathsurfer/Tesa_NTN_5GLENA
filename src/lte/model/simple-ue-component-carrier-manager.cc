@@ -368,4 +368,4 @@ SimpleUeComponentCarrierManager::DoConfigureSignalBearer(
     return m_ccmMacSapUser;
 }
 
-} // namespace ns3
+} // end of namespace ns3

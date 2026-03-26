@@ -3,6 +3,7 @@ build_lib(
   SOURCE_FILES model/animation-interface.cc
   HEADER_FILES model/animation-interface.h
   LIBRARIES_TO_LINK
+    ${libwimax}
     ${libwifi}
     ${liblte}
     ${libuan}

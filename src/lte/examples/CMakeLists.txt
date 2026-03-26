@@ -36,19 +36,13 @@ foreach(
   )
 endforeach()
 
-if(DEFINED
-   ENABLE_EMUNETDEV
-)
-  if(${ENABLE_EMU}
-     AND ${ENABLE_EMUNETDEV}
+if(${ENABLE_EMU})
+  build_lib_example(
+    NAME lena-simple-epc-emu
+    SOURCE_FILES lena-simple-epc-emu.cc
+    LIBRARIES_TO_LINK
+      ${liblte}
+      ${libfd-net-device}
+      ${libconfig-store}
   )
-    build_lib_example(
-      NAME lena-simple-epc-emu
-      SOURCE_FILES lena-simple-epc-emu.cc
-      LIBRARIES_TO_LINK
-        ${liblte}
-        ${libfd-net-device}
-        ${libconfig-store}
-    )
-  endif()
 endif()

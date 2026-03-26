@@ -198,7 +198,8 @@ class GnuplotHelper
 
     /// Terminal type for the plot.
     std::string m_terminalType;
-};
+
+}; // class GnuplotHelper
 
 } // namespace ns3
 

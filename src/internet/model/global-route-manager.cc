@@ -25,8 +25,6 @@ NS_LOG_COMPONENT_DEFINE("GlobalRouteManager");
 //
 // ---------------------------------------------------------------------------
 
-uint32_t GlobalRouteManager::routerId = 0;
-
 void
 GlobalRouteManager::DeleteGlobalRoutes()
 {
@@ -52,13 +50,8 @@ uint32_t
 GlobalRouteManager::AllocateRouterId()
 {
     NS_LOG_FUNCTION_NOARGS();
+    static uint32_t routerId = 0;
     return routerId++;
-}
-
-void
-GlobalRouteManager::ResetRouterId()
-{
-    routerId = 0;
 }
 
 } // namespace ns3

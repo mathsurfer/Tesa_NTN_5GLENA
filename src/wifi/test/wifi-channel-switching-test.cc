@@ -209,6 +209,8 @@ WifiChannelSwitchingTest::StateChange(uint32_t nodeId,
 void
 WifiChannelSwitchingTest::DoRun()
 {
+    Time simulationTime(Seconds(6));
+
     RngSeedManager::SetSeed(1);
     RngSeedManager::SetRun(40);
     int64_t streamNumber = 100;

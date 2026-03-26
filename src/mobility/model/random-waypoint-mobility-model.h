@@ -50,12 +50,6 @@ class RandomWaypointMobilityModel : public MobilityModel
 
     ~RandomWaypointMobilityModel() override;
 
-    // Inherited from MobilityModel
-    Ptr<MobilityModel> Copy() const override
-    {
-        return CreateObject<RandomWaypointMobilityModel>(*this);
-    }
-
   protected:
     void DoInitialize() override;
 

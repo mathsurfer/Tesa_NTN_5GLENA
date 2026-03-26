@@ -10,7 +10,7 @@
 
 #include "ns3/ipv6-address.h"
 
-#include <cstdint>
+#include <stdint.h>
 
 namespace ns3
 {

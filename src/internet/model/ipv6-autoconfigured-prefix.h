@@ -30,12 +30,6 @@ class Ipv6AutoconfiguredPrefix : public Object
 {
   public:
     /**
-     * @brief Get the type ID.
-     * @return the object TypeId
-     */
-    static TypeId GetTypeId();
-
-    /**
      * @brief Constructor.
      * @param node node
      * @param interface interface index

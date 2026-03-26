@@ -10,22 +10,12 @@
 #ifndef WIFI_PHY_H
 #define WIFI_PHY_H
 
-#include "frame-capture-model.h"
-#include "interference-helper.h"
-#include "preamble-detection-model.h"
-#include "wifi-net-device.h"
+#include "phy-entity.h"
 #include "wifi-phy-operating-channel.h"
 #include "wifi-phy-state-helper.h"
-#include "wifi-radio-energy-model.h"
 #include "wifi-standards.h"
 
-#include "ns3/attribute-container.h"
-#include "ns3/enum.h"
 #include "ns3/error-model.h"
-#include "ns3/mobility-model.h"
-#include "ns3/tuple.h"
-#include "ns3/uinteger.h"
-#include "ns3/wifi-export.h"
 
 #include <limits>
 
@@ -45,7 +35,6 @@ namespace ns3
 {
 
 class Channel;
-class PhyEntity;
 class WifiNetDevice;
 class MobilityModel;
 class WifiPhyStateHelper;
@@ -62,7 +51,7 @@ class WifiMacHeader;
  * @ingroup wifi
  *
  */
-class WIFI_EXPORT WifiPhy : public Object
+class WifiPhy : public Object
 {
   public:
     friend class PhyEntity;
@@ -128,8 +117,7 @@ class WIFI_EXPORT WifiPhy : public Object
      * @return if the PHY is busy decoding the PHY header fields of a PPDU, return the TXVECTOR
      *         used to transmit the PPDU; otherwise, return a null optional value
      */
-    virtual std::optional<std::reference_wrapper<const WifiTxVector>> GetInfoIfRxingPhyHeader()
-        const;
+    std::optional<std::reference_wrapper<const WifiTxVector>> GetInfoIfRxingPhyHeader() const;
 
     /**
      * For HE receptions only, check and possibly modify the transmit power restriction state at
@@ -441,6 +429,18 @@ class WIFI_EXPORT WifiPhy : public Object
      * @return the PIFS duration
      */
     Time GetPifs() const;
+    /**
+     * Return the estimated Ack TX time for this PHY.
+     *
+     * @return the estimated Ack TX time
+     */
+    Time GetAckTxTime() const;
+    /**
+     * Return the estimated BlockAck TX time for this PHY.
+     *
+     * @return the estimated BlockAck TX time
+     */
+    Time GetBlockAckTxTime() const;
 
     /**
      * Get the maximum PSDU size in bytes for the given modulation class.
@@ -895,21 +895,13 @@ class WIFI_EXPORT WifiPhy : public Object
     dB_u GetRxGain() const;
 
     /**
-     * Get the remaining time to preamble detection period to elapse, if preamble detection is
-     * ongoing.
-     *
-     * @return the remaining time to the end of the preamble detection detection period, if ongoing
-     */
-    virtual std::optional<Time> GetTimeToPreambleDetectionEnd() const;
-
-    /**
      * Get the remaining time to the end of the MAC header reception of the next MPDU being
      * received from the given STA, if any.
      *
      * @param staId the STA-ID of the transmitter; equals SU_STA_ID for SU PPDUs
      * @return the remaining time to the end of the MAC header reception of the next MPDU, if any
      */
-    virtual std::optional<Time> GetTimeToMacHdrEnd(uint16_t staId) const;
+    std::optional<Time> GetTimeToMacHdrEnd(uint16_t staId) const;
 
     /**
      * Sets the device this PHY is associated with.
@@ -945,45 +937,14 @@ class WIFI_EXPORT WifiPhy : public Object
      */
     Ptr<MobilityModel> GetMobility() const;
 
-    /// kept for backward compatibility, can be deprecated when using strong types
-    using ChannelTuple = WifiChannelConfig::SegmentWithoutUnits;
+    using ChannelTuple = std::tuple<uint8_t /* channel number */,
+                                    MHz_u /* channel width */,
+                                    WifiPhyBand /* WifiPhyBand */,
+                                    uint8_t /* primary20 index*/>; //!< Tuple identifying a segment
+                                                                   //!< of an operating channel
 
-    /// segments identifying an operating channel
-    using ChannelSegments = std::list<WifiChannelConfig::TupleWithoutUnits>;
-
-    /// AttributeValue type of a ChannelTuple object
-    using ChannelTupleValue =
-        TupleValue<UintegerValue, UintegerValue, EnumValue<WifiPhyBand>, UintegerValue>;
-
-    /// AttributeValue type of a ChannelSegments object
-    using ChannelSettingsValue = AttributeContainerValue<ChannelTupleValue, ';'>;
-
-    /**
-     * Get a checker for the ChannelSettings attribute, which can be used to deserialize a
-     * ChannelSegments object from a string:
-     *
-     * @code
-     *   WifiPhy::ChannelSettingsValue value;
-     *   value.DeserializeFromString("{36,0,BAND_5GHZ,0}", WifiPhy::GetChannelSegmentsChecker());
-     *   ChannelSettings channel = value.Get();
-     * @endcode
-     *
-     * Note that the WifiChannelConfig::FromString() static function uses the code above to return
-     * a WifiChannelConfig object starting from a string.
-     *
-     * @return a checker for the ChannelSettings attribute
-     */
-    static Ptr<const AttributeChecker> GetChannelSegmentsChecker();
-
-    /**
-     * The ChannelSettings attribute allows users to leave some parameters (e.g., the channel width)
-     * unspecified. This function is used to set such unspecified parameters to their default values
-     * in the given channel config.
-     *
-     * @param channelCfg the given channel settings
-     * @param standard the supported standard
-     */
-    static void SetUnspecifiedChannelParams(WifiChannelConfig& channelCfg, WifiStandard standard);
+    using ChannelSegments =
+        std::vector<ChannelTuple>; //!< segments identifying an operating channel
 
     /**
      * If the standard for this object has not been set yet, store the channel settings
@@ -1009,12 +970,12 @@ class WIFI_EXPORT WifiPhy : public Object
     void SetOperatingChannel(const ChannelSegments& channelSegments);
 
     /**
-     * This overloaded function is used to pass a WifiChannelConfig object from which
-     * the operating channel can be deduced.
+     * This overloaded function is used when the operating channel
+     * consists of a single segment, identified by a tuple.
      *
-     * @param channelCfg the channel config object
+     * @param tuple the segment identifying the operating channel
      */
-    void SetOperatingChannel(const WifiChannelConfig& channelCfg);
+    void SetOperatingChannel(const ChannelTuple& tuple);
 
     /**
      * Configure whether it is prohibited to change PHY band after initialization.
@@ -1204,8 +1165,7 @@ class WIFI_EXPORT WifiPhy : public Object
      * @param modulation the modulation class
      * @param phyEntity the PHY entity
      */
-    static void AddStaticPhyEntity(WifiModulationClass modulation,
-                                   std::shared_ptr<PhyEntity> phyEntity);
+    static void AddStaticPhyEntity(WifiModulationClass modulation, Ptr<PhyEntity> phyEntity);
 
     /**
      * Get the __implemented__ PHY entity corresponding to the modulation class.
@@ -1215,8 +1175,7 @@ class WIFI_EXPORT WifiPhy : public Object
      * @param modulation the modulation class
      * @return the pointer to the static implemented PHY entity
      */
-    static const std::shared_ptr<const PhyEntity> GetStaticPhyEntity(
-        WifiModulationClass modulation);
+    static const Ptr<const PhyEntity> GetStaticPhyEntity(WifiModulationClass modulation);
 
     /**
      * Get the supported PHY entity to use for a received PPDU.
@@ -1229,7 +1188,7 @@ class WIFI_EXPORT WifiPhy : public Object
      * @param ppdu the received PPDU
      * @return the pointer to the supported PHY entity
      */
-    std::shared_ptr<PhyEntity> GetPhyEntityForPpdu(const Ptr<const WifiPpdu> ppdu) const;
+    Ptr<PhyEntity> GetPhyEntityForPpdu(const Ptr<const WifiPpdu> ppdu) const;
 
     /**
      * Get the supported PHY entity corresponding to the modulation class.
@@ -1237,20 +1196,20 @@ class WIFI_EXPORT WifiPhy : public Object
      * @param modulation the modulation class
      * @return the pointer to the supported PHY entity
      */
-    std::shared_ptr<PhyEntity> GetPhyEntity(WifiModulationClass modulation) const;
+    Ptr<PhyEntity> GetPhyEntity(WifiModulationClass modulation) const;
     /**
      * Get the supported PHY entity corresponding to the wifi standard.
      *
      * @param standard the wifi standard
      * @return the pointer to the supported PHY entity
      */
-    std::shared_ptr<PhyEntity> GetPhyEntity(WifiStandard standard) const;
+    Ptr<PhyEntity> GetPhyEntity(WifiStandard standard) const;
     /**
      * Get the latest PHY entity supported by this PHY instance.
      *
      * @return the latest PHY entity supported by this PHY instance
      */
-    std::shared_ptr<PhyEntity> GetLatestPhyEntity() const;
+    Ptr<PhyEntity> GetLatestPhyEntity() const;
 
     /**
      * @return the UID of the previously received PPDU (reset to UINT64_MAX upon transmission)
@@ -1379,7 +1338,7 @@ class WIFI_EXPORT WifiPhy : public Object
      * @param modulation the modulation class
      * @param phyEntity the PHY entity
      */
-    void AddPhyEntity(WifiModulationClass modulation, std::shared_ptr<PhyEntity> phyEntity);
+    void AddPhyEntity(WifiModulationClass modulation, Ptr<PhyEntity> phyEntity);
 
     uint8_t m_phyId; //!< the index of the PHY in the vector of PHYs held by the WifiNetDevice
 
@@ -1422,7 +1381,7 @@ class WIFI_EXPORT WifiPhy : public Object
      * looking for WifiMode objects for which
      * WifiMode::IsMandatory() is true.
      */
-    std::map<WifiModulationClass, std::shared_ptr<PhyEntity>> m_phyEntities;
+    std::map<WifiModulationClass, Ptr<PhyEntity>> m_phyEntities;
 
     TracedCallback<Ptr<const WifiPpdu>, const WifiTxVector&>
         m_signalTransmissionCb; //!< Signal Transmission callback
@@ -1643,18 +1602,20 @@ class WIFI_EXPORT WifiPhy : public Object
      * For PHY entities supported by a given WifiPhy instance,
      * @see m_phyEntities.
      */
-    static std::map<WifiModulationClass, std::shared_ptr<PhyEntity>>& GetStaticPhyEntities();
+    static std::map<WifiModulationClass, Ptr<PhyEntity>>& GetStaticPhyEntities();
 
     WifiStandard m_standard;                    //!< WifiStandard
     WifiModulationClass m_maxModClassSupported; //!< max modulation class supported
     WifiPhyBand m_band;                         //!< WifiPhyBand
-    WifiChannelConfig m_channelCfg; //!< Store operating channel config until initialization
+    ChannelSegments m_channelSettings; //!< Store operating channel settings until initialization
     WifiPhyOperatingChannel m_operatingChannel; //!< Operating channel
     bool m_fixedPhyBand; //!< True to prohibit changing PHY band after initialization
 
-    Time m_sifs; //!< Short Interframe Space (SIFS) duration
-    Time m_slot; //!< Slot duration
-    Time m_pifs; //!< PCF Interframe Space (PIFS) duration
+    Time m_sifs;           //!< Short Interframe Space (SIFS) duration
+    Time m_slot;           //!< Slot duration
+    Time m_pifs;           //!< PCF Interframe Space (PIFS) duration
+    Time m_ackTxTime;      //!< estimated Ack TX time
+    Time m_blockAckTxTime; //!< estimated BlockAck TX time
 
     dBm_u m_rxSensitivity;  //!< Receive sensitivity threshold
     dBm_u m_ccaEdThreshold; //!< Clear channel assessment (CCA) energy detection (ED) threshold
@@ -1682,8 +1643,6 @@ class WIFI_EXPORT WifiPhy : public Object
     dB_u m_noiseFigure; //!< The noise figure
 
     Time m_channelSwitchDelay; //!< Time required to switch between channel
-
-    MHz_u m_maxRadioBw; //!< Maximum radio bandwidth
 
     Ptr<WifiNetDevice> m_device;   //!< Pointer to the device
     Ptr<MobilityModel> m_mobility; //!< Pointer to the mobility model

@@ -22,6 +22,7 @@
 
 // ns3 includes
 #ifdef __WIN32__
+#include "ns3/bs-net-device.h"
 #include "ns3/csma-net-device.h"
 #endif
 #include "animation-interface.h"
@@ -48,6 +49,7 @@
 #include "ns3/wifi-mac.h"
 #include "ns3/wifi-net-device.h"
 #include "ns3/wifi-psdu.h"
+#include "ns3/wimax-mac-header.h"
 
 namespace ns3
 {
@@ -93,10 +95,11 @@ AnimationInterface::AnimationInterface(const std::string fn)
      * The .dll.a/.lib however, only gets linked if we instantiate at
      * least one symbol exported by the .dll.
      *
-     * To ensure TypeIds from the Csma, Uan, and Wifi
+     * To ensure TypeIds from the Csma, Uan, Wifi and Wimax
      * modules are registered during runtime, we need to instantiate
      * at least one symbol exported by each of these module libraries.
      */
+    static BaseStationNetDevice b;
     static CsmaNetDevice c;
     static WifiNetDevice w;
     static UanNetDevice u;
@@ -474,6 +477,7 @@ AnimationInterface::MobilityAutoCheck()
     if (!Simulator::IsFinished())
     {
         PurgePendingPackets(AnimationInterface::WIFI);
+        PurgePendingPackets(AnimationInterface::WIMAX);
         PurgePendingPackets(AnimationInterface::LTE);
         PurgePendingPackets(AnimationInterface::CSMA);
         PurgePendingPackets(AnimationInterface::LRWPAN);
@@ -1065,6 +1069,20 @@ AnimationInterface::LrWpanPhyRxBeginTrace(std::string context, Ptr<const Packet>
 }
 
 void
+AnimationInterface::WimaxTxTrace(std::string context, Ptr<const Packet> p, const Mac48Address& m)
+{
+    NS_LOG_FUNCTION(this);
+    return GenericWirelessTxTrace(context, p, AnimationInterface::WIMAX);
+}
+
+void
+AnimationInterface::WimaxRxTrace(std::string context, Ptr<const Packet> p, const Mac48Address& m)
+{
+    NS_LOG_FUNCTION(this);
+    return GenericWirelessRxTrace(context, p, AnimationInterface::WIMAX);
+}
+
+void
 AnimationInterface::LteTxTrace(std::string context, Ptr<const Packet> p, const Mac48Address& m)
 {
     NS_LOG_FUNCTION(this);
@@ -1328,6 +1346,10 @@ AnimationInterface::ProtocolTypeToPendingPackets(AnimationInterface::ProtocolTyp
         pendingPackets = &m_pendingCsmaPackets;
         break;
     }
+    case AnimationInterface::WIMAX: {
+        pendingPackets = &m_pendingWimaxPackets;
+        break;
+    }
     case AnimationInterface::LTE: {
         pendingPackets = &m_pendingLtePackets;
         break;
@@ -1356,6 +1378,10 @@ AnimationInterface::ProtocolTypeToString(AnimationInterface::ProtocolType protoc
     }
     case AnimationInterface::CSMA: {
         result = "CSMA";
+        break;
+    }
+    case AnimationInterface::WIMAX: {
+        result = "WIMAX";
         break;
     }
     case AnimationInterface::LTE: {
@@ -1588,6 +1614,10 @@ AnimationInterface::ConnectCallbacks()
     Config::ConnectWithoutContextFailSafe(
         "/NodeList/*/$ns3::MobilityModel/CourseChange",
         MakeCallback(&AnimationInterface::MobilityCourseChangeTrace, this));
+    Config::ConnectFailSafe("/NodeList/*/DeviceList/*/$ns3::WimaxNetDevice/Tx",
+                            MakeCallback(&AnimationInterface::WimaxTxTrace, this));
+    Config::ConnectFailSafe("/NodeList/*/DeviceList/*/$ns3::WimaxNetDevice/Rx",
+                            MakeCallback(&AnimationInterface::WimaxRxTrace, this));
     Config::ConnectFailSafe("/NodeList/*/DeviceList/*/$ns3::LteNetDevice/Tx",
                             MakeCallback(&AnimationInterface::LteTxTrace, this));
     Config::ConnectFailSafe("/NodeList/*/DeviceList/*/$ns3::LteNetDevice/Rx",

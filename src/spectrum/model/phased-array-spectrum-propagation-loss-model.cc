@@ -77,6 +77,29 @@ PhasedArraySpectrumPropagationLossModel::CalcRxPowerSpectralDensity(
     return rxParams;
 }
 
+
+/*Ptr<SpectrumSignalParameters>
+PhasedArraySpectrumPropagationLossModel::PCalcRxPowerSpectralDensity(
+    Ptr<const SpectrumSignalParameters> params,
+    Ptr<const MobilityModel> a,
+    Ptr<const MobilityModel> b,
+    Ptr<const ParabolicAntennaModel> aPhasedArrayModel,
+    Ptr<const ParabolicAntennaModel> bPhasedArrayModel) const
+{
+    // Here we assume that all the models in the chain of models are of type
+    // PhasedArraySpectrumPropagationLossModel that provides the implementation of
+    // this function, i.e. has phased array model of TX and RX as parameters
+    auto rxParams =
+        DoCalcRxPowerSpectralDensity(params, a, b, aPhasedArrayModel, bPhasedArrayModel);
+
+    if (m_next)
+    {
+        rxParams =
+            m_next->CalcRxPowerSpectralDensity(params, a, b, aPhasedArrayModel, bPhasedArrayModel);
+    }
+    return rxParams;
+}*/
+
 int64_t
 PhasedArraySpectrumPropagationLossModel::AssignStreams(int64_t stream)
 {

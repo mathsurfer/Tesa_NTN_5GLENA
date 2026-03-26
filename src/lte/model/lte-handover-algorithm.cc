@@ -38,4 +38,4 @@ LteHandoverAlgorithm::DoDispose()
 {
 }
 
-} // namespace ns3
+} // end of namespace ns3

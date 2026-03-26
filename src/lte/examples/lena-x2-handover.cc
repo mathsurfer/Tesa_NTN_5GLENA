@@ -323,7 +323,8 @@ main(int argc, char* argv[])
             serverApps.Start(startTime);
             clientApps.Start(startTime);
             clientApps.Stop(simTime);
-        }
+
+        } // end for b
     }
 
     // Add X2 interface

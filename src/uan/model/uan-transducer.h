@@ -121,8 +121,7 @@ class UanPacketArrival
     UanPdp m_pdp;         //!< The propagation delay profile.
     Time m_arrTime;       //!< The arrival time.
 
-    // end of class UanPacketArrival
-};
+}; // class UanPacketArrival
 
 /**
  * @ingroup uan
@@ -252,8 +251,7 @@ class UanTransducer : public Object
      */
     virtual void Clear() = 0;
 
-    // end of class UanTransducer
-};
+}; // class UanTransducer
 
 } // namespace ns3
 

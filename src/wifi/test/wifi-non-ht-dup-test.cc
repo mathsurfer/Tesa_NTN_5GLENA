@@ -65,9 +65,7 @@ class MuRtsCtsHePhy : public HePhy
      * @param muRtsTxVector the TXVECTOR used to transmit MU-RTS trigger frame
      */
     void SetMuRtsTxVector(const WifiTxVector& muRtsTxVector);
-
-    // end of class MuRtsCtsHePhy
-};
+}; // class MuRtsCtsHePhy
 
 MuRtsCtsHePhy::MuRtsCtsHePhy()
     : HePhy()
@@ -127,11 +125,8 @@ class MuRtsCtsSpectrumWifiPhy : public SpectrumWifiPhy
     void SetMuRtsTxVector(const WifiTxVector& muRtsTxVector);
 
   private:
-    std::shared_ptr<MuRtsCtsHePhy>
-        m_muRtsCtsHePhy; ///< Pointer to HE PHY instance used for MU-RTS/CTS PHY test
-
-    // end of class MuRtsCtsSpectrumWifiPhy
-};
+    Ptr<MuRtsCtsHePhy> m_muRtsCtsHePhy; ///< Pointer to HE PHY instance used for MU-RTS/CTS PHY test
+};                                      // class MuRtsCtsSpectrumWifiPhy
 
 TypeId
 MuRtsCtsSpectrumWifiPhy::GetTypeId()
@@ -145,7 +140,7 @@ MuRtsCtsSpectrumWifiPhy::MuRtsCtsSpectrumWifiPhy()
     : SpectrumWifiPhy()
 {
     NS_LOG_FUNCTION(this);
-    m_muRtsCtsHePhy = std::make_shared<MuRtsCtsHePhy>();
+    m_muRtsCtsHePhy = Create<MuRtsCtsHePhy>();
     m_muRtsCtsHePhy->SetOwner(this);
 }
 
@@ -340,9 +335,16 @@ TestNonHtDuplicatePhyReception::SendNonHtDuplicatePpdu(MHz_u channelWidth)
                                          channelWidth,
                                          false);
 
-    auto pkt = Create<Packet>(1000);
+    Ptr<Packet> pkt = Create<Packet>(1000);
     WifiMacHeader hdr;
-    auto psdu = Create<WifiPsdu>(pkt, hdr);
+
+    hdr.SetType(WIFI_MAC_QOSDATA);
+    hdr.SetQosTid(0);
+
+    Ptr<WifiPsdu> psdu = Create<WifiPsdu>(pkt, hdr);
+    Time txDuration =
+        SpectrumWifiPhy::CalculateTxDuration(psdu->GetSize(), txVector, m_phyAp->GetPhyBand());
+
     m_phyAp->Send(WifiConstPsduMap({std::make_pair(SU_STA_ID, psdu)}), txVector);
 }
 

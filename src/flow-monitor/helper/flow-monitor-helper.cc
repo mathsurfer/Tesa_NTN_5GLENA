@@ -85,16 +85,15 @@ FlowMonitorHelper::Install(Ptr<Node> node)
     Ptr<Ipv4L3Protocol> ipv4 = node->GetObject<Ipv4L3Protocol>();
     if (ipv4)
     {
-        auto probe =
-            CreateObject<Ipv4FlowProbe>(monitor, DynamicCast<Ipv4FlowClassifier>(classifier), node);
+        Ptr<Ipv4FlowProbe> probe =
+            Create<Ipv4FlowProbe>(monitor, DynamicCast<Ipv4FlowClassifier>(classifier), node);
     }
     Ptr<FlowClassifier> classifier6 = GetClassifier6();
     Ptr<Ipv6L3Protocol> ipv6 = node->GetObject<Ipv6L3Protocol>();
     if (ipv6)
     {
-        auto probe6 = CreateObject<Ipv6FlowProbe>(monitor,
-                                                  DynamicCast<Ipv6FlowClassifier>(classifier6),
-                                                  node);
+        Ptr<Ipv6FlowProbe> probe6 =
+            Create<Ipv6FlowProbe>(monitor, DynamicCast<Ipv6FlowClassifier>(classifier6), node);
     }
     return m_flowMonitor;
 }

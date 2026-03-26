@@ -13,7 +13,6 @@
 
 #include <iostream>
 #include <stdint.h>
-#include <type_traits>
 
 /**
  * @file
@@ -428,8 +427,6 @@ struct EventMemberImplObjTraits<Ptr<T>>
 namespace ns3
 {
 
-class Object;
-
 /*************************************************
  *  friend non-member function implementations
  ************************************************/
@@ -438,8 +435,6 @@ template <typename T, typename... Ts>
 Ptr<T>
 Create(Ts&&... args)
 {
-    static_assert(!std::is_base_of_v<Object, T>,
-                  "Use CreateObject() instead of Create() for Object subclasses");
     return Ptr<T>(new T(std::forward<Ts>(args)...), false);
 }
 

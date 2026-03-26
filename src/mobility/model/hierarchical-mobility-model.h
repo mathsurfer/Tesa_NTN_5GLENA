@@ -54,12 +54,6 @@ class HierarchicalMobilityModel : public MobilityModel
 
     HierarchicalMobilityModel();
 
-    // Inherited from MobilityModel
-    Ptr<MobilityModel> Copy() const override
-    {
-        return CreateObject<HierarchicalMobilityModel>(*this);
-    }
-
     /**
      * @return the child mobility model.
      *

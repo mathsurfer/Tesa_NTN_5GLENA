@@ -39,12 +39,6 @@ class ConstantVelocityMobilityModel : public MobilityModel
     ConstantVelocityMobilityModel();
     ~ConstantVelocityMobilityModel() override;
 
-    // Inherited from MobilityModel
-    Ptr<MobilityModel> Copy() const override
-    {
-        return CreateObject<ConstantVelocityMobilityModel>(*this);
-    }
-
     /**
      * @param speed the new speed to set.
      *

@@ -19,7 +19,6 @@
 #include "object.h"
 #include "type-id.h"
 
-#include <limits>
 #include <map>
 #include <stdint.h>
 
@@ -161,8 +160,7 @@ class RandomVariableStream : public Object
     /** The stream number for the RngStream. */
     int64_t m_stream;
 
-    // end of class RandomVariableStream
-};
+}; // class RandomVariableStream
 
 /**
  * @ingroup randomvariable
@@ -282,8 +280,7 @@ class UniformRandomVariable : public RandomVariableStream
     /** The upper bound on values that can be returned by this RNG stream. */
     double m_max;
 
-    // end of class UniformRandomVariable
-};
+}; // class UniformRandomVariable
 
 /**
  * @ingroup randomvariable
@@ -338,8 +335,7 @@ class ConstantRandomVariable : public RandomVariableStream
     /** The constant value returned by this RNG stream. */
     double m_constant;
 
-    // end of class ConstantRandomVariable
-};
+}; // class ConstantRandomVariable
 
 /**
  * @ingroup randomvariable
@@ -469,8 +465,7 @@ class SequentialRandomVariable : public RandomVariableStream
     /** Indicates if the current sequence value has been properly initialized. */
     bool m_isCurrentSet;
 
-    // end of class SequentialRandomVariable
-};
+}; // class SequentialRandomVariable
 
 /**
  * @ingroup randomvariable
@@ -595,8 +590,7 @@ class ExponentialRandomVariable : public RandomVariableStream
     /** The upper bound on values that can be returned by this RNG stream. */
     double m_bound;
 
-    // end of class ExponentialRandomVariable
-};
+}; // class ExponentialRandomVariable
 
 /**
  * @ingroup randomvariable
@@ -735,8 +729,7 @@ class ParetoRandomVariable : public RandomVariableStream
     /** The upper bound on values that can be returned by this RNG stream. */
     double m_bound;
 
-    // end of class ParetoRandomVariable
-};
+}; // class ParetoRandomVariable
 
 /**
  * @ingroup randomvariable
@@ -896,8 +889,7 @@ class WeibullRandomVariable : public RandomVariableStream
     /** The upper bound on values that can be returned by this RNG stream. */
     double m_bound;
 
-    // end of class WeibullRandomVariable
-};
+}; // class WeibullRandomVariable
 
 /**
  * @ingroup randomvariable
@@ -979,8 +971,8 @@ class WeibullRandomVariable : public RandomVariableStream
 class NormalRandomVariable : public RandomVariableStream
 {
   public:
-    /// Large constant to bound the range.
-    static constexpr double INFINITE_VALUE = std::numeric_limits<double>::max();
+    /** Large constant to bound the range. */
+    static const double INFINITE_VALUE;
 
     /**
      * @brief Register this type.
@@ -1047,8 +1039,7 @@ class NormalRandomVariable : public RandomVariableStream
     /** The algorithm produces two values at a time. Cache parameters for possible reuse.*/
     double m_y;
 
-    // end of class NormalRandomVariable
-};
+}; // class NormalRandomVariable
 
 /**
  * @ingroup randomvariable
@@ -1197,8 +1188,7 @@ class LogNormalRandomVariable : public RandomVariableStream
     /** The algorithm produces two values at a time. Cache parameters for possible reuse.*/
     double m_normal;
 
-    // end of class LogNormalRandomVariable
-};
+}; // class LogNormalRandomVariable
 
 /**
  * @ingroup randomvariable
@@ -1320,8 +1310,7 @@ class GammaRandomVariable : public RandomVariableStream
     /** The algorithm produces two values at a time. Cache parameters for possible reuse.*/
     double m_y;
 
-    // end of class GammaRandomVariable
-};
+}; // class GammaRandomVariable
 
 /**
  * @ingroup randomvariable
@@ -1446,8 +1435,7 @@ class ErlangRandomVariable : public RandomVariableStream
     /** The lambda value for the Erlang distribution returned by this RNG stream. */
     double m_lambda;
 
-    // end of class ErlangRandomVariable
-};
+}; // class ErlangRandomVariable
 
 /**
  * @ingroup randomvariable
@@ -1578,8 +1566,7 @@ class TriangularRandomVariable : public RandomVariableStream
     /** The upper bound on values that can be returned by this RNG stream. */
     double m_max;
 
-    // end of class TriangularRandomVariable
-};
+}; // class TriangularRandomVariable
 
 /**
  * @ingroup randomvariable
@@ -1706,8 +1693,7 @@ class ZipfRandomVariable : public RandomVariableStream
     /** The normalization constant. */
     double m_c;
 
-    // end of class ZipfRandomVariable
-};
+}; // class ZipfRandomVariable
 
 /**
  * @ingroup randomvariable
@@ -1809,8 +1795,7 @@ class ZetaRandomVariable : public RandomVariableStream
     /** Just for calculus simplifications. */
     double m_b;
 
-    // end of class ZetaRandomVariable
-};
+}; // class ZetaRandomVariable
 
 /**
  * @ingroup randomvariable
@@ -1897,8 +1882,7 @@ class DeterministicRandomVariable : public RandomVariableStream
     /** Array of values to return in sequence. */
     double* m_data;
 
-    // end of class DeterministicRandomVariable
-};
+}; // class DeterministicRandomVariable
 
 /**
  * @ingroup randomvariable
@@ -2091,8 +2075,7 @@ class EmpiricalRandomVariable : public RandomVariableStream
      */
     bool m_interpolate;
 
-    // end of class EmpiricalRandomVariable
-};
+}; // class EmpiricalRandomVariable
 
 /**
  * @ingroup randomvariable
@@ -2195,8 +2178,7 @@ class BinomialRandomVariable : public RandomVariableStream
     /** The probability of success in each trial. */
     double m_probability;
 
-    // end of class BinomialRandomVariable
-};
+}; // class BinomialRandomVariable
 
 /**
  * @ingroup randomvariable
@@ -2289,8 +2271,7 @@ class BernoulliRandomVariable : public RandomVariableStream
     /** The probability of success. */
     double m_probability;
 
-    // end of class BernoulliRandomVariable
-};
+}; // class BernoulliRandomVariable
 
 /**
  * @ingroup randomvariable
@@ -2396,8 +2377,7 @@ class LaplacianRandomVariable : public RandomVariableStream
     /** The bound on values that can be returned by this RNG stream. */
     double m_bound;
 
-    // end of class LaplacianRandomVariable
-};
+}; // class LaplacianRandomVariable
 
 /**
  * @ingroup randomvariable
@@ -2519,8 +2499,7 @@ class LargestExtremeValueRandomVariable : public RandomVariableStream
     /** The scale value of the Largest Extreme Value distribution. */
     double m_scale;
 
-    // end of class LargestExtremeValueRandomVariable
-};
+}; // class LargestExtremeValueRandomVariable
 
 } // namespace ns3
 

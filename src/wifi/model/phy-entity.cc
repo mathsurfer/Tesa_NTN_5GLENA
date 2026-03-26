@@ -15,16 +15,13 @@
 #include "interference-helper.h"
 #include "preamble-detection-model.h"
 #include "spectrum-wifi-phy.h"
-#include "wifi-net-device.h"
 #include "wifi-psdu.h"
-#include "wifi-radio-energy-model.h"
 #include "wifi-spectrum-signal-parameters.h"
 #include "wifi-utils.h"
 
 #include "ns3/assert.h"
 #include "ns3/data-rate.h"
 #include "ns3/log.h"
-#include "ns3/mobility-model.h"
 #include "ns3/packet.h"
 #include "ns3/simulator.h"
 
@@ -215,7 +212,7 @@ PhyEntity::GetAddressedPsduInPpdu(Ptr<const WifiPpdu> ppdu) const
     return ppdu->GetPsdu();
 }
 
-PhyHeaderSections
+PhyEntity::PhyHeaderSections
 PhyEntity::GetPhyHeaderSections(const WifiTxVector& txVector, Time ppduStart) const
 {
     PhyHeaderSections map;
@@ -260,7 +257,7 @@ PhyEntity::GetDurationUpToField(WifiPpduField field, const WifiTxVector& txVecto
         .first; // return the start time of field relatively to the beginning of the PPDU
 }
 
-SnrPer
+PhyEntity::SnrPer
 PhyEntity::GetPhyHeaderSnrPer(WifiPpduField field, Ptr<Event> event) const
 {
     const auto measurementChannelWidth = GetMeasurementChannelWidth(event->GetPpdu());
@@ -788,7 +785,7 @@ void
 PhyEntity::RxPayloadFailed(Ptr<const WifiPsdu> psdu, double snr, const WifiTxVector& txVector)
 {
     NS_LOG_FUNCTION(this << *psdu << txVector << snr);
-    m_state->SwitchFromRxEndError(txVector);
+    m_state->SwitchFromRxEndError();
 }
 
 void
@@ -845,27 +842,6 @@ PhyEntity::GetReceptionStatus(Ptr<WifiMpdu> mpdu,
         NS_LOG_DEBUG("Reception failed: " << *mpdu);
         return {false, signalNoise};
     }
-}
-
-std::optional<Time>
-PhyEntity::GetTimeToPreambleDetectionEnd() const
-{
-    if (m_endPreambleDetectionEvents.empty())
-    {
-        return {};
-    }
-
-    std::optional<Time> delayUntilPreambleDetectionEnd;
-    for (const auto& endPreambleDetectionEvent : m_endPreambleDetectionEvents)
-    {
-        if (endPreambleDetectionEvent.IsPending())
-        {
-            delayUntilPreambleDetectionEnd =
-                std::max(delayUntilPreambleDetectionEnd.value_or(Time{0}),
-                         Simulator::GetDelayLeft(endPreambleDetectionEvent));
-        }
-    }
-    return delayUntilPreambleDetectionEnd;
 }
 
 std::optional<Time>
@@ -1203,6 +1179,12 @@ PhyEntity::CancelAllEvents()
         }
     }
     m_endOfMacHdrEvents.clear();
+}
+
+bool
+PhyEntity::NoEndPreambleDetectionEvents() const
+{
+    return m_endPreambleDetectionEvents.empty();
 }
 
 void

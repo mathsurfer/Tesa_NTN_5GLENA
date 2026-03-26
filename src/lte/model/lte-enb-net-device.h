@@ -257,7 +257,8 @@ class LteEnbNetDevice : public LteNetDevice
 
     Ptr<LteEnbComponentCarrierManager>
         m_componentCarrierManager; ///< the component carrier manager of this eNb
-};
+
+}; // end of class LteEnbNetDevice
 
 } // namespace ns3
 

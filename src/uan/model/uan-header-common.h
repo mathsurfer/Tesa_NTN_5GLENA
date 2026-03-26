@@ -141,7 +141,8 @@ class UanHeaderCommon : public Header
     Mac8Address m_dest;                   //!< The destination address.
     Mac8Address m_src;                    //!< The source address.
     UanProtocolBits m_uanProtocolBits{0}; //!< The type and protocol bits
-};
+
+}; // class UanHeaderCommon
 
 } // namespace ns3
 

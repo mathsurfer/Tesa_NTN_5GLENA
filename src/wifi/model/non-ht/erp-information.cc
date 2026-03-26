@@ -78,12 +78,13 @@ ErpInformation::DeserializeInformationField(Buffer::Iterator start, uint16_t len
     return length;
 }
 
-void
-ErpInformation::Print(std::ostream& os) const
+std::ostream&
+operator<<(std::ostream& os, const ErpInformation& erpInformation)
 {
-    os << "ERP Information=[Barker Preamble Mode: " << GetBarkerPreambleMode()
-       << ", Use Protection: " << GetUseProtection() << ", Non ERP Present: " << GetNonErpPresent()
-       << "]";
+    os << bool(erpInformation.GetBarkerPreambleMode()) << "|"
+       << bool(erpInformation.GetUseProtection()) << "|" << bool(erpInformation.GetNonErpPresent());
+
+    return os;
 }
 
 } // namespace ns3

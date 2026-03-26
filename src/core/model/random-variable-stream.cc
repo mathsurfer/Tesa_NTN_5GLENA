@@ -652,6 +652,8 @@ WeibullRandomVariable::GetValue()
 
 NS_OBJECT_ENSURE_REGISTERED(NormalRandomVariable);
 
+const double NormalRandomVariable::INFINITE_VALUE = 1e307;
+
 TypeId
 NormalRandomVariable::GetTypeId()
 {

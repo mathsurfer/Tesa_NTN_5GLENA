@@ -841,7 +841,8 @@ class LteUePhy : public LtePhy
     SpectrumValue m_ctrlSinrForRlf; ///< the CTRL SINR used for RLF detection
     uint64_t m_imsi;                ///< the IMSI of the UE
     bool m_enableRlfDetection;      ///< Flag to enable/disable RLF detection
-};
+
+}; // end of `class LteUePhy`
 
 /**
  * @brief Stream insertion operator.

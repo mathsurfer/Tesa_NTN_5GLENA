@@ -276,7 +276,8 @@ class GnuplotAggregator : public DataCollectionObject
 
     /// Maps context strings to 2D datasets.
     std::map<std::string, Gnuplot2dDataset> m_2dDatasetMap;
-};
+
+}; // class GnuplotAggregator
 
 } // namespace ns3
 

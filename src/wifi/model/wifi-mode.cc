@@ -11,6 +11,7 @@
 
 #include "wifi-tx-vector.h"
 
+#include "ns3/he-ru.h"
 #include "ns3/log.h"
 
 #include <cmath>
@@ -157,7 +158,8 @@ WifiMode::GetMcsValue() const
     }
     else
     {
-        NS_ASSERT_MSG(false, "GetMcsValue() cannot be called for non-HT modulations");
+        // We should not go here!
+        NS_ASSERT(false);
         return 0;
     }
 }

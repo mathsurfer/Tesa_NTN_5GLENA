@@ -33,7 +33,7 @@ enum HtProtectionType
  * @brief The HT Operation Information Element
  * @ingroup wifi
  *
- * This class knows how to serialize and deserialize
+ * This class knows how to serialise and deserialise
  * the HT Operation Information Element
  */
 class HtOperation : public WifiInformationElement

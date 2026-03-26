@@ -44,6 +44,8 @@ double
 IsotropicAntennaModel::GetGainDb(Angles a)
 {
     NS_LOG_FUNCTION(this << a);
+    double m_gainDbc=m_gainDb;
+    std::cout <<"m_gainDb= "<<m_gainDbc;
     return m_gainDb;
 }
 

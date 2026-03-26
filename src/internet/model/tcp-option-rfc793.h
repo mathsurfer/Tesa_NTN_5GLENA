@@ -29,6 +29,7 @@ class TcpOptionEnd : public TcpOption
      * @return the object TypeId
      */
     static TypeId GetTypeId();
+    TypeId GetInstanceTypeId() const override;
 
     void Print(std::ostream& os) const override;
     void Serialize(Buffer::Iterator start) const override;
@@ -52,6 +53,7 @@ class TcpOptionNOP : public TcpOption
      * @return the object TypeId
      */
     static TypeId GetTypeId();
+    TypeId GetInstanceTypeId() const override;
 
     void Print(std::ostream& os) const override;
     void Serialize(Buffer::Iterator start) const override;
@@ -75,6 +77,7 @@ class TcpOptionMSS : public TcpOption
      * @return the object TypeId
      */
     static TypeId GetTypeId();
+    TypeId GetInstanceTypeId() const override;
 
     void Print(std::ostream& os) const override;
     void Serialize(Buffer::Iterator start) const override;

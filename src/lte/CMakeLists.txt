@@ -2,25 +2,19 @@ set(emu_sources)
 set(emu_headers)
 set(emu_features)
 set(emu_libraries)
-if(DEFINED
-   ENABLE_EMUNETDEV
-)
-  if(${ENABLE_EMU}
-     AND ${ENABLE_EMUNETDEV}
+if(${ENABLE_EMU})
+  set(emu_sources
+      helper/emu-epc-helper.cc
   )
-    set(emu_sources
-        helper/emu-epc-helper.cc
-    )
-    set(emu_headers
-        helper/emu-epc-helper.h
-    )
-    set(emu_features
-        EmuFdNetDevice
-    )
-    set(emu_libraries
-        ${libfd-net-device}
-    )
-  endif()
+  set(emu_headers
+      helper/emu-epc-helper.h
+  )
+  set(emu_features
+      EmuFdNetDevice
+  )
+  set(emu_libraries
+      ${libfd-net-device}
+  )
 endif()
 
 set(source_files
@@ -152,6 +146,7 @@ set(source_files
     model/tdmt-ff-mac-scheduler.cc
     model/tdtbfq-ff-mac-scheduler.cc
     model/tta-ff-mac-scheduler.cc
+    
 )
 
 set(header_files
@@ -283,6 +278,7 @@ set(header_files
     model/tdmt-ff-mac-scheduler.h
     model/tdtbfq-ff-mac-scheduler.h
     model/tta-ff-mac-scheduler.h
+   
 )
 
 set(test_sources

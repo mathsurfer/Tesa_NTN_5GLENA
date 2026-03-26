@@ -110,8 +110,7 @@ class EnvVarTestCase : public TestCase
     /** Test environment variable name. */
     const std::string m_variable{"NS_ENVVAR_TEST"};
 
-    // end of class EnvVarTestCase
-};
+}; // class EnvVarTestCase
 
 EnvVarTestCase::EnvVarTestCase()
     : TestCase("environment-variable-cache")

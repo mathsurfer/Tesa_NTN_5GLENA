@@ -145,8 +145,9 @@ class LteFfrSimple : public LteFfrAlgorithm
     uint32_t m_tpc;         ///< transmission power control to be used
     uint32_t m_tpcNum;      ///< number of TPC configurations
     bool m_accumulatedMode; ///< whether to use the TPC accumulated mode
-};
 
-} // namespace ns3
+}; // end of class LteFfrSimple
+
+} // end of namespace ns3
 
 #endif /* LTE_FFR_SIMPLE_H */

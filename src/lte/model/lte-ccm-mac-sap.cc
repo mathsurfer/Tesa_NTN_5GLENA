@@ -20,4 +20,4 @@ LteCcmMacSapUser::~LteCcmMacSapUser()
 {
 }
 
-} // namespace ns3
+} // end of namespace ns3

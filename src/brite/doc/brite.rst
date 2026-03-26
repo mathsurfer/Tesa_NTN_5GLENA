@@ -87,18 +87,17 @@ Building BRITE Integration
 
 The first step is to download and build the ns-3 specific BRITE repository::
 
-  $ git clone https://gitlab.com/nsnam/BRITE.git
+  $ hg clone http://code.nsnam.org/BRITE
   $ cd BRITE
-  $ mkdir build && cd build
-  $ cmake ..
   $ make
 
-This will build a library, libbrite.so, within the BRITE/build subdirectory.
+This will build BRITE and create a library, libbrite.so, within the BRITE
+directory.
 
 Once BRITE has been built successfully, we proceed to configure ns-3 with
 BRITE support. Change to your ns-3 directory::
 
-  $ ./ns3 configure --with-brite=/your/path/to/BRITE --enable-examples
+  $ ./ns3 configure --with-brite=/your/path/to/brite/source --enable-examples
 
 Make sure it says 'enabled' beside 'BRITE Integration'. If it does not, then
 something has gone wrong. Either you have forgotten to build BRITE first

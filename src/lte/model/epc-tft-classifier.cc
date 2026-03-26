@@ -251,9 +251,10 @@ EpcTftClassifier::Classify(Ptr<Packet> p, EpcTft::Direction direction, uint16_t 
 
     if (protocolNumber == Ipv4L3Protocol::PROT_NUMBER)
     {
-        NS_LOG_INFO("Classifying packet: localAddr="
-                    << localAddressIpv4 << " remoteAddr=" << remoteAddressIpv4 << " localPort="
-                    << localPort << " remotePort=" << remotePort << " tos=0x" << (uint16_t)tos);
+        NS_LOG_INFO("Classifying packet:"
+                    << " localAddr=" << localAddressIpv4 << " remoteAddr=" << remoteAddressIpv4
+                    << " localPort=" << localPort << " remotePort=" << remotePort << " tos=0x"
+                    << (uint16_t)tos);
 
         // now it is possible to classify the packet!
         // we use a reverse iterator since filter priority is not implemented properly.
@@ -281,9 +282,10 @@ EpcTftClassifier::Classify(Ptr<Packet> p, EpcTft::Direction direction, uint16_t 
     }
     else if (protocolNumber == Ipv6L3Protocol::PROT_NUMBER)
     {
-        NS_LOG_INFO("Classifying packet: localAddr="
-                    << localAddressIpv6 << " remoteAddr=" << remoteAddressIpv6 << " localPort="
-                    << localPort << " remotePort=" << remotePort << " tos=0x" << (uint16_t)tos);
+        NS_LOG_INFO("Classifying packet:"
+                    << " localAddr=" << localAddressIpv6 << " remoteAddr=" << remoteAddressIpv6
+                    << " localPort=" << localPort << " remotePort=" << remotePort << " tos=0x"
+                    << (uint16_t)tos);
 
         // now it is possible to classify the packet!
         // we use a reverse iterator since filter priority is not implemented properly.

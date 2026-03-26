@@ -278,7 +278,7 @@ ThreeGppPropagationLossModel::GetTypeId()
                           MakeDoubleChecker<double>())
             .AddAttribute("ShadowingEnabled",
                           "Enable/disable shadowing.",
-                          BooleanValue(true),
+                          BooleanValue(false),//default is trur
                           MakeBooleanAccessor(&ThreeGppPropagationLossModel::m_shadowingEnabled),
                           MakeBooleanChecker())
             .AddAttribute(
@@ -355,8 +355,10 @@ void
 ThreeGppPropagationLossModel::SetFrequency(double f)
 {
     NS_LOG_FUNCTION(this);
-    NS_ASSERT_MSG(f >= 500.0e6 && f <= 100.0e9,
-                  "Frequency should be between 0.5 and 100 GHz but is " << f);
+    //NS_ASSERT_MSG(f >= 100.0e6 && f <= 100.0e9,
+                  //"Frequency should be between 0.5 and 100 GHz but is " << f);
+                  /*NS_ASSERT_MSG(f >= 100.0e6 && f <= 100.0e9,
+                  "Frequency should be between 0.5 and 100 GHz but is " << f);*/
     m_frequency = f;
 }
 
@@ -389,6 +391,14 @@ ThreeGppPropagationLossModel::DoCalcRxPower(double txPowerDbm,
 
     double rxPow = txPowerDbm;
     rxPow -= GetLoss(cond, a, b);
+    
+    
+    //add more
+    double distance = a->GetDistanceFrom(b);
+    
+    
+    
+    
 
     if (m_shadowingEnabled)
     {
@@ -410,7 +420,9 @@ ThreeGppPropagationLossModel::DoCalcRxPower(double txPowerDbm,
             rxPow -= GetO2iHighPenetrationLoss(a, b, cond->GetLosCondition());
         }
     }
-
+//std::cout <<"\n distance= "<<distance;
+//std::cout <<"\n This is the TXPower "<<txPowerDbm;
+     //std::cout <<"\n This is the RXPower "<<rxPow;
     return rxPow;
 }
 
@@ -426,6 +438,7 @@ ThreeGppPropagationLossModel::GetLoss(Ptr<ChannelCondition> cond,
     {
     case ChannelCondition::LosConditionValue::LOS:
         loss = GetLossLos(a, b);
+        // std::cout <<"GetLossGetLossGetLoss";
         break;
     case ChannelCondition::LosConditionValue::NLOSv:
         loss = GetLossNlosv(a, b);
@@ -782,6 +795,7 @@ ThreeGppRmaPropagationLossModel::GetLossLos(Ptr<MobilityModel> a, Ptr<MobilityMo
 
     auto [distance2D, distance3D, hBs, hUt] = GetBsUtDistancesAndHeights(a, b);
 
+   
     // check if hBS and hUT are within the specified validity range
     if (hUt < 1.0 || hUt > 10.0)
     {
@@ -906,11 +920,11 @@ ThreeGppRmaPropagationLossModel::GetShadowingStd(Ptr<MobilityModel> a,
 
         if (distance2d <= distanceBp)
         {
-            shadowingStd = 4.0;
+            shadowingStd = 0.0;//4.0
         }
         else
         {
-            shadowingStd = 6.0;
+            shadowingStd = 0.0;//6.0
         }
     }
     else if (cond == ChannelCondition::LosConditionValue::NLOS)
@@ -1037,6 +1051,7 @@ ThreeGppUmaPropagationLossModel::GetLossLos(Ptr<MobilityModel> a, Ptr<MobilityMo
     NS_LOG_FUNCTION(this);
 
     auto [distance2D, distance3D, hBs, hUt] = GetBsUtDistancesAndHeights(a, b);
+ 
 
     // check if hBS and hUT are within the validity range
     if (hUt < 1.5 || hUt > 22.5)
@@ -1153,7 +1168,7 @@ ThreeGppUmaPropagationLossModel::GetShadowingStd(Ptr<MobilityModel> /* a */,
 
     if (cond == ChannelCondition::LosConditionValue::LOS)
     {
-        shadowingStd = 4.0;
+        shadowingStd = 0.0;//4.0
     }
     else if (cond == ChannelCondition::LosConditionValue::NLOS)
     {
@@ -1376,7 +1391,7 @@ ThreeGppUmiStreetCanyonPropagationLossModel::GetShadowingStd(
 
     if (cond == ChannelCondition::LosConditionValue::LOS)
     {
-        shadowingStd = 4.0;
+        shadowingStd = 0.0;//4.0
     }
     else if (cond == ChannelCondition::LosConditionValue::NLOS)
     {
@@ -1454,6 +1469,7 @@ ThreeGppIndoorOfficePropagationLossModel::GetLossLos(Ptr<MobilityModel> a,
 {
     NS_LOG_FUNCTION(this);
 
+    
     double distance3D = CalculateDistance(a->GetPosition(), b->GetPosition());
 
     // check if the distance is outside the validity range
@@ -1508,7 +1524,7 @@ ThreeGppIndoorOfficePropagationLossModel::GetShadowingStd(
 
     if (cond == ChannelCondition::LosConditionValue::LOS)
     {
-        shadowingStd = 3.0;
+        shadowingStd = 0.0;//3.0
     }
     else if (cond == ChannelCondition::LosConditionValue::NLOS)
     {
@@ -2031,7 +2047,7 @@ ThreeGppNTNRuralPropagationLossModel::GetLossLos(Ptr<MobilityModel> a, Ptr<Mobil
     double distance3D = CalculateDistance(a->GetPosition(), b->GetPosition());
     auto [elevAngle, elevAngleQuantized] =
         ThreeGppChannelConditionModel::GetQuantizedElevationAngle(a, b);
-
+//std::cout<<"distance3D"  <<distance3D   ;
     // compute the pathloss (see 3GPP TR 38.811, Table 6.6.2)
     double loss = ComputeNtnPathloss(m_frequency, distance3D);
 
@@ -2040,7 +2056,7 @@ ThreeGppNTNRuralPropagationLossModel::GetLossLos(Ptr<MobilityModel> a, Ptr<Mobil
 
     // Apply Ionospheric plus Tropospheric Scintillation Loss
     loss += ComputeIonosphericPlusTroposphericScintillationLoss(m_frequency, elevAngleQuantized);
-
+//std::cout<<"distance= "  <<distance3D   ;
     NS_LOG_DEBUG("Loss " << loss);
     return loss;
 }

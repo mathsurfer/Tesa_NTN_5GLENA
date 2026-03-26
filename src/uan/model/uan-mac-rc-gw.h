@@ -282,7 +282,8 @@ class UanMacRcGw : public UanMac
 
   protected:
     void DoDispose() override;
-};
+
+}; // class UanMacRcGw
 
 } // namespace ns3
 

@@ -78,8 +78,7 @@ PacketSocketAddress::GetPhysicalAddress() const
     return m_address;
 }
 
-PacketSocketAddress::
-operator Address() const
+PacketSocketAddress::operator Address() const
 {
     return ConvertTo();
 }

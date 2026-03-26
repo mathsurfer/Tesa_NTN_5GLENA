@@ -226,7 +226,8 @@ class AcousticModemEnergyModel : public energy::DeviceEnergyModel
 
     /** Energy recharge callback. */
     AcousticModemEnergyRechargeCallback m_energyRechargeCallback;
-};
+
+}; // class AcousticModemEnergyModel
 
 } // namespace ns3
 

@@ -1,4 +1,3 @@
-// NOLINTBEGIN
 /*
  * Copyright (c) 2006 INRIA
  *
@@ -229,4 +228,3 @@ int64x64_t::Invert(const uint64_t v)
 } // namespace ns3
 
 #endif /* INT64X64_CAIRO_H */
-// NOLINTEND

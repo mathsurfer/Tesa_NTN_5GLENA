@@ -10,7 +10,6 @@
 #define WIFI_RADIO_ENERGY_MODEL_HELPER_H
 
 #include "ns3/energy-model-helper.h"
-#include "ns3/wifi-export.h"
 #include "ns3/wifi-radio-energy-model.h"
 
 namespace ns3
@@ -23,7 +22,7 @@ namespace ns3
  * This installer installs WifiRadioEnergyModel for only WifiNetDevice objects.
  *
  */
-class WIFI_EXPORT WifiRadioEnergyModelHelper : public DeviceEnergyModelHelper
+class WifiRadioEnergyModelHelper : public DeviceEnergyModelHelper
 {
   public:
     /**

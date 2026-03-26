@@ -20,4 +20,4 @@ LteAnrSapUser::~LteAnrSapUser()
 {
 }
 
-} // namespace ns3
+} // end of namespace ns3

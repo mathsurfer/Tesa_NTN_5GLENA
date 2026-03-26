@@ -10,10 +10,8 @@
 #include "wifi-assoc-manager.h"
 
 #include "sta-wifi-mac.h"
-#include "wifi-phy.h"
 
 #include "ns3/attribute-container.h"
-#include "ns3/boolean.h"
 #include "ns3/eht-configuration.h"
 #include "ns3/enum.h"
 #include "ns3/log.h"
@@ -69,15 +67,7 @@ WifiAssocManager::GetTypeId()
                 "set are processed. An empty set is equivalent to the set of all links.",
                 AttributeContainerValue<UintegerValue>(),
                 MakeAttributeContainerAccessor<UintegerValue>(&WifiAssocManager::m_allowedLinks),
-                MakeAttributeContainerChecker<UintegerValue>(MakeUintegerChecker<uint8_t>()))
-            .AddAttribute("AllowAssocAllChannelWidths",
-                          "If set to true, it bypasses the check on channel width compatibility "
-                          "with the candidate AP. A channel width is compatible if the STA can "
-                          "advertise it to the AP, or AP operates on a channel width that is equal "
-                          "or lower than that channel width.",
-                          BooleanValue(false),
-                          MakeBooleanAccessor(&WifiAssocManager::m_allowAssocAllChannelWidths),
-                          MakeBooleanChecker());
+                MakeAttributeContainerChecker<UintegerValue>(MakeUintegerChecker<uint8_t>()));
     return tid;
 }
 
@@ -246,10 +236,6 @@ WifiAssocManager::ScanningTimeout()
         m_apListIt.erase(bestAp.m_bssid);
     } while (!CanBeReturned(bestAp));
 
-    NS_ABORT_MSG_IF(!m_allowAssocAllChannelWidths && !IsChannelWidthCompatible(bestAp),
-                    "Channel width of STA is not part of the channel width set that can be "
-                    "advertised to the AP");
-
     m_mac->ScanningTimeout(std::move(bestAp));
 }
 
@@ -264,7 +250,7 @@ WifiAssocManager::CanSetupMultiLink(OptMleConstRef& mle, OptRnrConstRef& rnr)
 {
     NS_LOG_FUNCTION(this);
 
-    if (m_mac->GetAssocType() == WifiAssocType::LEGACY || GetSortedList().empty())
+    if (m_mac->GetNLinks() == 1 || GetSortedList().empty())
     {
         return false;
     }
@@ -373,16 +359,6 @@ WifiAssocManager::GetAllAffiliatedAps(const ReducedNeighborReport& rnr)
     }
 
     return apList;
-}
-
-bool
-WifiAssocManager::IsChannelWidthCompatible(const StaWifiMac::ApInfo& apInfo) const
-{
-    auto phy = m_mac->GetWifiPhy(apInfo.m_linkId);
-    return GetSupportedChannelWidthSet(phy->GetStandard(), apInfo.m_channel.band)
-               .contains(phy->GetChannelWidth()) ||
-           (phy->GetChannelWidth() >= m_mac->GetWifiRemoteStationManager(apInfo.m_linkId)
-                                          ->GetChannelWidthSupported(apInfo.m_bssid));
 }
 
 } // namespace ns3

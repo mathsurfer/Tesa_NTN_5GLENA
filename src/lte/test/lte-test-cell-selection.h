@@ -162,6 +162,7 @@ class LteCellSelectionTestCase : public TestCase
 
     /// The current UE RRC state.
     std::vector<LteUeRrc::State> m_lastState;
-};
+
+}; // end of class LteCellSelectionTestCase
 
 #endif /* LTE_TEST_CELL_SELECTION_H */

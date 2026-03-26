@@ -52,7 +52,7 @@
 #include "ns3/uinteger.h"
 
 #include <algorithm>
-#include <cmath>
+#include <math.h>
 
 namespace
 {
@@ -289,6 +289,12 @@ TcpSocketBase::GetTypeId()
     return tid;
 }
 
+TypeId
+TcpSocketBase::GetInstanceTypeId() const
+{
+    return TcpSocketBase::GetTypeId();
+}
+
 TcpSocketBase::TcpSocketBase()
     : TcpSocket()
 {
@@ -429,13 +435,10 @@ TcpSocketBase::TcpSocketBase(const TcpSocketBase& sock)
     m_tcb->m_pacingRate = m_tcb->m_maxPacingRate;
     m_pacingTimer.SetFunction(&TcpSocketBase::NotifyPacingPerformed, this);
 
-    m_rateOps = CreateObject<TcpRateLinux>();
-
     if (sock.m_congestionControl)
     {
         m_congestionControl = sock.m_congestionControl->Fork();
         m_congestionControl->Init(m_tcb);
-        m_congestionControl->SetRateOps(m_rateOps);
     }
 
     if (sock.m_recoveryOps)
@@ -443,6 +446,7 @@ TcpSocketBase::TcpSocketBase(const TcpSocketBase& sock)
         m_recoveryOps = sock.m_recoveryOps->Fork();
     }
 
+    m_rateOps = CreateObject<TcpRateLinux>();
     if (m_tcb->m_sendEmptyPacketCallback.IsNull())
     {
         m_tcb->m_sendEmptyPacketCallback = MakeCallback(&TcpSocketBase::SendEmptyPacket, this);
@@ -2251,9 +2255,9 @@ TcpSocketBase::ProcessAck(const SequenceNumber32& ackNumber,
 
                 m_tcb->m_cWndInfl = m_tcb->m_cWnd;
 
-                NS_LOG_LOGIC("Congestion control called: cWnd: " << m_tcb->m_cWnd
-                                                                 << " ssTh: " << m_tcb->m_ssThresh
-                                                                 << " segsAcked: " << segsAcked);
+                NS_LOG_LOGIC("Congestion control called: "
+                             << " cWnd: " << m_tcb->m_cWnd << " ssTh: " << m_tcb->m_ssThresh
+                             << " segsAcked: " << segsAcked);
 
                 NewAck(ackNumber, true);
             }
@@ -4659,7 +4663,6 @@ TcpSocketBase::SetCongestionControlAlgorithm(Ptr<TcpCongestionOps> algo)
     NS_LOG_FUNCTION(this << algo);
     m_congestionControl = algo;
     m_congestionControl->Init(m_tcb);
-    m_congestionControl->SetRateOps(m_rateOps);
 }
 
 void

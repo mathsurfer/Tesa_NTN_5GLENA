@@ -9,7 +9,6 @@
 #include "ns3/constant-position-mobility-model.h"
 #include "ns3/double.h"
 #include "ns3/log.h"
-#include "ns3/node-container.h"
 #include "ns3/propagation-loss-model.h"
 #include "ns3/simulator.h"
 #include "ns3/test.h"
@@ -408,12 +407,10 @@ MatrixPropagationLossModelTestCase::~MatrixPropagationLossModelTestCase()
 void
 MatrixPropagationLossModelTestCase::DoRun()
 {
-    NodeContainer nc(3);
     Ptr<MobilityModel> m[3];
     for (int i = 0; i < 3; ++i)
     {
         m[i] = CreateObject<ConstantPositionMobilityModel>();
-        nc.Get(i)->AggregateObject(m[i]);
     }
 
     MatrixPropagationLossModel loss;

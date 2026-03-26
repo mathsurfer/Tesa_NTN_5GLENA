@@ -27,8 +27,7 @@ RadvdHelper::RadvdHelper()
 void
 RadvdHelper::AddAnnouncedPrefix(uint32_t interface,
                                 const Ipv6Address& prefix,
-                                uint32_t prefixLength,
-                                bool slaac)
+                                uint32_t prefixLength)
 {
     NS_LOG_FUNCTION(this << int(interface) << prefix << int(prefixLength));
     if (prefixLength != 64)
@@ -60,7 +59,6 @@ RadvdHelper::AddAnnouncedPrefix(uint32_t interface,
     if (!prefixFound)
     {
         Ptr<RadvdPrefix> routerPrefix = Create<RadvdPrefix>(prefix, prefixLength);
-        routerPrefix->SetAutonomousFlag(slaac);
         m_radvdInterfaces[interface]->AddPrefix(routerPrefix);
     }
 }

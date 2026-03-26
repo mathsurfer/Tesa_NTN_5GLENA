@@ -45,12 +45,8 @@ NoBackhaulEpcHelper::NoBackhaulEpcHelper()
       m_s5LinkMtu(3000)
 {
     NS_LOG_FUNCTION(this);
-}
-
-void
-NoBackhaulEpcHelper::NotifyConstructionCompleted()
-{
-    EpcHelper::NotifyConstructionCompleted();
+    // To access the attribute value within the constructor
+    ObjectBase::ConstructSelf(AttributeConstructionList());
 
     int retval;
 
@@ -290,6 +286,12 @@ NoBackhaulEpcHelper::GetTypeId()
                           MakeBooleanAccessor(&NoBackhaulEpcHelper::m_x2LinkEnablePcap),
                           MakeBooleanChecker());
     return tid;
+}
+
+TypeId
+NoBackhaulEpcHelper::GetInstanceTypeId() const
+{
+    return GetTypeId();
 }
 
 void

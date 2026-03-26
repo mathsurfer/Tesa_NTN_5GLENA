@@ -7,6 +7,7 @@
 #ifndef NS3_TEST_H
 #define NS3_TEST_H
 
+#include "deprecated.h"
 #include "system-wall-clock-ms.h"
 
 #include <fstream>
@@ -139,9 +140,9 @@ namespace tests
             std::ostringstream msgStream;                                                          \
             msgStream << msg;                                                                      \
             std::ostringstream actualStream;                                                       \
-            actualStream << (actual);                                                              \
+            actualStream << actual;                                                                \
             std::ostringstream limitStream;                                                        \
-            limitStream << (limit);                                                                \
+            limitStream << limit;                                                                  \
             ReportTestFailure(std::string(#actual) + " (actual) == " + std::string(#limit) +       \
                                   " (limit)",                                                      \
                               actualStream.str(),                                                  \
@@ -194,9 +195,9 @@ namespace tests
             std::ostringstream msgStream;                                                          \
             msgStream << msg;                                                                      \
             std::ostringstream actualStream;                                                       \
-            actualStream << (actual);                                                              \
+            actualStream << actual;                                                                \
             std::ostringstream limitStream;                                                        \
-            limitStream << (limit);                                                                \
+            limitStream << limit;                                                                  \
             ReportTestFailure(std::string(#actual) + " (actual) == " + std::string(#limit) +       \
                                   " (limit)",                                                      \
                               actualStream.str(),                                                  \
@@ -223,7 +224,7 @@ namespace tests
  * The message is interpreted as a stream, for example:
  *
  * @code
- * NS_TEST_EXPECT_MSG_EQ(result, true,
+ * NS_TEST_EXPECT_MSG_EQUAL (result, true,
  *      "cannot open file " << filename << " in test");
  * @endcode
  *
@@ -246,9 +247,9 @@ namespace tests
             std::ostringstream msgStream;                                                          \
             msgStream << msg;                                                                      \
             std::ostringstream actualStream;                                                       \
-            actualStream << (actual);                                                              \
+            actualStream << actual;                                                                \
             std::ostringstream limitStream;                                                        \
-            limitStream << (limit);                                                                \
+            limitStream << limit;                                                                  \
             ReportTestFailure(std::string(#actual) + " (actual) == " + std::string(#limit) +       \
                                   " (limit)",                                                      \
                               actualStream.str(),                                                  \
@@ -332,9 +333,9 @@ namespace tests
             std::ostringstream msgStream;                                                          \
             msgStream << msg;                                                                      \
             std::ostringstream actualStream;                                                       \
-            actualStream << (actual);                                                              \
+            actualStream << actual;                                                                \
             std::ostringstream limitStream;                                                        \
-            limitStream << (limit) << " +- " << tol;                                               \
+            limitStream << limit << " +- " << tol;                                                 \
             std::ostringstream condStream;                                                         \
             condStream << #actual << " (actual) < " << #limit << " (limit) + " << #tol             \
                        << " (tol) && " << #actual << " (actual) > " << #limit << " (limit) - "     \
@@ -420,9 +421,9 @@ namespace tests
             std::ostringstream msgStream;                                                          \
             msgStream << msg;                                                                      \
             std::ostringstream actualStream;                                                       \
-            actualStream << (actual);                                                              \
+            actualStream << actual;                                                                \
             std::ostringstream limitStream;                                                        \
-            limitStream << (limit) << " +- " << tol;                                               \
+            limitStream << limit << " +- " << tol;                                                 \
             std::ostringstream condStream;                                                         \
             condStream << #actual << " (actual) < " << #limit << " (limit) + " << #tol             \
                        << " (tol) && " << #actual << " (actual) > " << #limit << " (limit) - "     \
@@ -505,9 +506,9 @@ namespace tests
             std::ostringstream msgStream;                                                          \
             msgStream << msg;                                                                      \
             std::ostringstream actualStream;                                                       \
-            actualStream << (actual);                                                              \
+            actualStream << actual;                                                                \
             std::ostringstream limitStream;                                                        \
-            limitStream << (limit) << " +- " << tol;                                               \
+            limitStream << limit << " +- " << tol;                                                 \
             std::ostringstream condStream;                                                         \
             condStream << #actual << " (actual) < " << #limit << " (limit) + " << #tol             \
                        << " (tol) && " << #actual << " (actual) > " << #limit << " (limit) - "     \
@@ -559,9 +560,9 @@ namespace tests
             std::ostringstream msgStream;                                                          \
             msgStream << msg;                                                                      \
             std::ostringstream actualStream;                                                       \
-            actualStream << (actual);                                                              \
+            actualStream << actual;                                                                \
             std::ostringstream limitStream;                                                        \
-            limitStream << (limit);                                                                \
+            limitStream << limit;                                                                  \
             ReportTestFailure(std::string(#actual) + " (actual) != " + std::string(#limit) +       \
                                   " (limit)",                                                      \
                               actualStream.str(),                                                  \
@@ -610,9 +611,9 @@ namespace tests
             std::ostringstream msgStream;                                                          \
             msgStream << msg;                                                                      \
             std::ostringstream actualStream;                                                       \
-            actualStream << (actual);                                                              \
+            actualStream << actual;                                                                \
             std::ostringstream limitStream;                                                        \
-            limitStream << (limit);                                                                \
+            limitStream << limit;                                                                  \
             ReportTestFailure(std::string(#actual) + " (actual) != " + std::string(#limit) +       \
                                   " (limit)",                                                      \
                               actualStream.str(),                                                  \
@@ -661,9 +662,9 @@ namespace tests
             std::ostringstream msgStream;                                                          \
             msgStream << msg;                                                                      \
             std::ostringstream actualStream;                                                       \
-            actualStream << (actual);                                                              \
+            actualStream << actual;                                                                \
             std::ostringstream limitStream;                                                        \
-            limitStream << (limit);                                                                \
+            limitStream << limit;                                                                  \
             ReportTestFailure(std::string(#actual) + " (actual) != " + std::string(#limit) +       \
                                   " (limit)",                                                      \
                               actualStream.str(),                                                  \
@@ -704,9 +705,9 @@ namespace tests
             std::ostringstream msgStream;                                                          \
             msgStream << msg;                                                                      \
             std::ostringstream actualStream;                                                       \
-            actualStream << (actual);                                                              \
+            actualStream << actual;                                                                \
             std::ostringstream limitStream;                                                        \
-            limitStream << (limit);                                                                \
+            limitStream << limit;                                                                  \
             ReportTestFailure(std::string(#actual) + " (actual) < " + std::string(#limit) +        \
                                   " (limit)",                                                      \
                               actualStream.str(),                                                  \
@@ -745,9 +746,9 @@ namespace tests
             std::ostringstream msgStream;                                                          \
             msgStream << msg;                                                                      \
             std::ostringstream actualStream;                                                       \
-            actualStream << (actual);                                                              \
+            actualStream << actual;                                                                \
             std::ostringstream limitStream;                                                        \
-            limitStream << (limit);                                                                \
+            limitStream << limit;                                                                  \
             ReportTestFailure(std::string(#actual) + " (actual) < " + std::string(#limit) +        \
                                   " (limit)",                                                      \
                               actualStream.str(),                                                  \
@@ -785,9 +786,9 @@ namespace tests
             std::ostringstream msgStream;                                                          \
             msgStream << msg;                                                                      \
             std::ostringstream actualStream;                                                       \
-            actualStream << (actual);                                                              \
+            actualStream << actual;                                                                \
             std::ostringstream limitStream;                                                        \
-            limitStream << (limit);                                                                \
+            limitStream << limit;                                                                  \
             ReportTestFailure(std::string(#actual) + " (actual) < " + std::string(#limit) +        \
                                   " (limit)",                                                      \
                               actualStream.str(),                                                  \
@@ -825,9 +826,9 @@ namespace tests
             std::ostringstream msgStream;                                                          \
             msgStream << msg;                                                                      \
             std::ostringstream actualStream;                                                       \
-            actualStream << (actual);                                                              \
+            actualStream << actual;                                                                \
             std::ostringstream limitStream;                                                        \
-            limitStream << (limit);                                                                \
+            limitStream << limit;                                                                  \
             ReportTestFailure(std::string(#actual) + " (actual) < " + std::string(#limit) +        \
                                   " (limit)",                                                      \
                               actualStream.str(),                                                  \
@@ -869,9 +870,9 @@ namespace tests
             std::ostringstream msgStream;                                                          \
             msgStream << msg;                                                                      \
             std::ostringstream actualStream;                                                       \
-            actualStream << (actual);                                                              \
+            actualStream << actual;                                                                \
             std::ostringstream limitStream;                                                        \
-            limitStream << (limit);                                                                \
+            limitStream << limit;                                                                  \
             ReportTestFailure(std::string(#actual) + " (actual) > " + std::string(#limit) +        \
                                   " (limit)",                                                      \
                               actualStream.str(),                                                  \
@@ -910,9 +911,9 @@ namespace tests
             std::ostringstream msgStream;                                                          \
             msgStream << msg;                                                                      \
             std::ostringstream actualStream;                                                       \
-            actualStream << (actual);                                                              \
+            actualStream << actual;                                                                \
             std::ostringstream limitStream;                                                        \
-            limitStream << (limit);                                                                \
+            limitStream << limit;                                                                  \
             ReportTestFailure(std::string(#actual) + " (actual) > " + std::string(#limit) +        \
                                   " (limit)",                                                      \
                               actualStream.str(),                                                  \
@@ -951,9 +952,9 @@ namespace tests
             std::ostringstream msgStream;                                                          \
             msgStream << msg;                                                                      \
             std::ostringstream actualStream;                                                       \
-            actualStream << (actual);                                                              \
+            actualStream << actual;                                                                \
             std::ostringstream limitStream;                                                        \
-            limitStream << (limit);                                                                \
+            limitStream << limit;                                                                  \
             ReportTestFailure(std::string(#actual) + " (actual) > " + std::string(#limit) +        \
                                   " (limit)",                                                      \
                               actualStream.str(),                                                  \
@@ -991,9 +992,9 @@ namespace tests
             std::ostringstream msgStream;                                                          \
             msgStream << msg;                                                                      \
             std::ostringstream actualStream;                                                       \
-            actualStream << (actual);                                                              \
+            actualStream << actual;                                                                \
             std::ostringstream limitStream;                                                        \
-            limitStream << (limit);                                                                \
+            limitStream << limit;                                                                  \
             ReportTestFailure(std::string(#actual) + " (actual) > " + std::string(#limit) +        \
                                   " (limit)",                                                      \
                               actualStream.str(),                                                  \
@@ -1055,6 +1056,22 @@ class TestCase
         EXTENSIVE = 2,    //!< Medium length test.
         TAKES_FOREVER = 3 //!< Very long running test.
     };
+
+    /**
+     * Deprecated test duration simple enums.
+     *
+     * Use the `TestCase::Duration` enum class symbols instead.
+     * @{
+     */
+    NS_DEPRECATED_3_42("Use Duration::QUICK instead")
+    static constexpr auto QUICK = Duration::QUICK;
+    NS_DEPRECATED_3_42("Use Duration::EXTENSIVE instead")
+    static constexpr auto EXTENSIVE = Duration::EXTENSIVE;
+    NS_DEPRECATED_3_42("Use Duration::TAKES_FOREVER instead")
+    static constexpr auto TAKES_FOREVER = Duration::TAKES_FOREVER;
+
+    using TestDuration NS_DEPRECATED_3_42("Use Duration instead") = Duration;
+    /**@}*/
 
     /**
      *  Destructor
@@ -1261,6 +1278,24 @@ class TestSuite : public TestCase
         EXAMPLE,    //!< This test suite implements an Example Test
         PERFORMANCE //!< This test suite implements a Performance Test
     };
+
+    /**
+     * Deprecated test type simple enums.
+     *
+     * Use the `TestSuite::Type` enum class symbols instead.
+     * @{
+     */
+    NS_DEPRECATED_3_42("Use Type::ALL instead")
+    static constexpr auto ALL = Type::ALL;
+    NS_DEPRECATED_3_42("Use Type::UNIT instead")
+    static constexpr auto UNIT = Type::UNIT;
+    NS_DEPRECATED_3_42("Use Type::SYSTEM instead")
+    static constexpr auto SYSTEM = Type::SYSTEM;
+    NS_DEPRECATED_3_42("Use Type::EXAMPLE instead")
+    static constexpr auto EXAMPLE = Type::EXAMPLE;
+    NS_DEPRECATED_3_42("Use Type::PERFORMANCE instead")
+    static constexpr auto PERFORMANCE = Type::PERFORMANCE;
+    /**@}*/
 
     /**
      * @brief Construct a new test suite.

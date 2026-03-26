@@ -102,7 +102,8 @@ ReportRank(int color, MPI_Comm splitComm)
     RANK0COUTAPPEND("in MPI_COMM_WORLD: " << SinkTracer::GetWorldRank() << ":"
                                           << SinkTracer::GetWorldSize() << ", in splitComm: "
                                           << otherId << ":" << otherSize << std::endl);
-}
+
+} // ReportRank()
 
 int
 main(int argc, char* argv[])

@@ -232,7 +232,8 @@ class AthstatsWifiTraceSink : public Object
     std::ofstream* m_writer; ///< output stream
 
     Time m_interval; ///< interval
-};
+
+}; // class AthstatsWifiTraceSink
 
 } // namespace ns3
 

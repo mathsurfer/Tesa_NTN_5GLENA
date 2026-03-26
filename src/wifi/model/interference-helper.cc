@@ -10,7 +10,6 @@
 #include "interference-helper.h"
 
 #include "error-rate-model.h"
-#include "phy-entity.h"
 #include "wifi-phy-operating-channel.h"
 #include "wifi-phy.h"
 #include "wifi-psdu.h"
@@ -133,6 +132,11 @@ InterferenceHelper::NiChange::NiChange(Watt_u power, Ptr<Event> event)
     : m_power(power),
       m_event(event)
 {
+}
+
+InterferenceHelper::NiChange::~NiChange()
+{
+    m_event = nullptr;
 }
 
 Watt_u
@@ -467,13 +471,14 @@ InterferenceHelper::CalculateNoiseInterferenceW(Ptr<Event> event,
     {
         ;
     }
-    auto& ni = nis[band];
+    NiChanges ni;
     ni.emplace(event->GetStartTime(), NiChange(Watt_u{0}, event));
     while (++it != niIt->second.end() && it->second.GetEvent() != event)
     {
         ni.insert(*it);
     }
     ni.emplace(event->GetEndTime(), NiChange(Watt_u{0}, event));
+    nis.insert({band, ni});
     NS_ASSERT_MSG(noiseInterference >= Watt_u{0.0},
                   "CalculateNoiseInterferenceW returns negative value " << noiseInterference);
     return noiseInterference;
@@ -641,11 +646,12 @@ InterferenceHelper::CalculatePayloadPer(Ptr<const Event> event,
 }
 
 double
-InterferenceHelper::CalculatePhyHeaderSectionPsr(Ptr<const Event> event,
-                                                 NiChangesPerBand* nis,
-                                                 MHz_u channelWidth,
-                                                 const WifiSpectrumBandInfo& band,
-                                                 PhyHeaderSections phyHeaderSections) const
+InterferenceHelper::CalculatePhyHeaderSectionPsr(
+    Ptr<const Event> event,
+    NiChangesPerBand* nis,
+    MHz_u channelWidth,
+    const WifiSpectrumBandInfo& band,
+    PhyEntity::PhyHeaderSections phyHeaderSections) const
 {
     NS_LOG_FUNCTION(this << band);
     double psr = 1.0; /* Packet Success Rate */
@@ -715,7 +721,7 @@ InterferenceHelper::CalculatePhyHeaderPer(Ptr<const Event> event,
     auto phyEntity =
         WifiPhy::GetStaticPhyEntity(event->GetPpdu()->GetTxVector().GetModulationClass());
 
-    PhyHeaderSections sections;
+    PhyEntity::PhyHeaderSections sections;
     for (const auto& section :
          phyEntity->GetPhyHeaderSections(event->GetPpdu()->GetTxVector(), niIt.begin()->first))
     {
@@ -733,7 +739,7 @@ InterferenceHelper::CalculatePhyHeaderPer(Ptr<const Event> event,
     return 1 - psr;
 }
 
-SnrPer
+PhyEntity::SnrPer
 InterferenceHelper::CalculatePayloadSnrPer(Ptr<Event> event,
                                            MHz_u channelWidth,
                                            const WifiSpectrumBandInfo& band,
@@ -755,7 +761,7 @@ InterferenceHelper::CalculatePayloadSnrPer(Ptr<Event> event,
     const auto per =
         CalculatePayloadPer(event, channelWidth, &ni, band, staId, relativeMpduStartStop);
 
-    return SnrPer(snr, per);
+    return PhyEntity::SnrPer(snr, per);
 }
 
 double
@@ -769,7 +775,7 @@ InterferenceHelper::CalculateSnr(Ptr<Event> event,
     return CalculateSnr(event->GetRxPower(band), noiseInterference, channelWidth, nss);
 }
 
-SnrPer
+PhyEntity::SnrPer
 InterferenceHelper::CalculatePhyHeaderSnrPer(Ptr<Event> event,
                                              MHz_u channelWidth,
                                              const WifiSpectrumBandInfo& band,
@@ -785,20 +791,23 @@ InterferenceHelper::CalculatePhyHeaderSnrPer(Ptr<Event> event,
      */
     const auto per = CalculatePhyHeaderPer(event, &ni, channelWidth, band, header);
 
-    return SnrPer(snr, per);
+    return PhyEntity::SnrPer(snr, per);
 }
 
 InterferenceHelper::NiChanges::iterator
-InterferenceHelper::GetNextPosition(Time moment, NiChangesPerBand::iterator niIt) const
+InterferenceHelper::GetNextPosition(Time moment, NiChangesPerBand::iterator niIt)
 {
     return niIt->second.upper_bound(moment);
 }
 
 InterferenceHelper::NiChanges::iterator
-InterferenceHelper::GetPreviousPosition(Time moment, NiChangesPerBand::iterator niIt) const
+InterferenceHelper::GetPreviousPosition(Time moment, NiChangesPerBand::iterator niIt)
 {
-    // This is safe since there is always an NiChange at time 0, before moment.
-    return std::prev(GetNextPosition(moment, niIt));
+    auto it = GetNextPosition(moment, niIt);
+    // This is safe since there is always an NiChange at time 0,
+    // before moment.
+    --it;
+    return it;
 }
 
 InterferenceHelper::NiChanges::iterator
@@ -827,7 +836,8 @@ InterferenceHelper::NotifyRxEnd(Time endTime, const FrequencyRange& freqRange)
             continue;
         }
         NS_ASSERT(niIt->second.size() > 1);
-        auto it = std::prev(GetPreviousPosition(endTime, niIt));
+        auto it = GetPreviousPosition(endTime, niIt);
+        it--;
         m_firstPowers.find(niIt->first)->second = it->second.GetPower();
     }
 }

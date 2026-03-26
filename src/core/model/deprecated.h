@@ -85,20 +85,6 @@
 
 /**
  * @ingroup deprecation
- * @def NS_DEPRECATED_3_46
- * Tag for things deprecated in version ns-3.46.
- */
-#define NS_DEPRECATED_3_46(msg) NS_DEPRECATED("Deprecated in ns-3.46: " msg)
-
-/**
- * @ingroup deprecation
- * @def NS_DEPRECATED_3_45
- * Tag for things deprecated in version ns-3.45.
- */
-#define NS_DEPRECATED_3_45(msg) NS_DEPRECATED("Deprecated in ns-3.45: " msg)
-
-/**
- * @ingroup deprecation
  * @def NS_DEPRECATED_3_44
  * Tag for things deprecated in version ns-3.44.
  */
@@ -110,5 +96,26 @@
  * Tag for things deprecated in version ns-3.43.
  */
 #define NS_DEPRECATED_3_43(msg) NS_DEPRECATED("Deprecated in ns-3.43: " msg)
+
+/**
+ * @ingroup deprecation
+ * @def NS_DEPRECATED_3_42
+ * Tag for things deprecated in version ns-3.42.
+ */
+#define NS_DEPRECATED_3_42(msg) NS_DEPRECATED("Deprecated in ns-3.42: " msg)
+
+/**
+ * @ingroup deprecation
+ * @def NS_DEPRECATED_3_41
+ * Tag for things deprecated in version ns-3.41.
+ */
+#define NS_DEPRECATED_3_41(msg) NS_DEPRECATED("Deprecated in ns-3.41: " msg)
+
+/**
+ * @ingroup deprecation
+ * @def NS_DEPRECATED_3_40
+ * Tag for things deprecated in version ns-3.40.
+ */
+#define NS_DEPRECATED_3_40(msg) NS_DEPRECATED("Deprecated in ns-3.40: " msg)
 
 #endif /* NS3_DEPRECATED_H */

@@ -13,8 +13,6 @@
 #define PHY_ENTITY_H
 
 #include "wifi-phy-band.h"
-#include "wifi-phy-state-helper.h"
-#include "wifi-phy.h"
 #include "wifi-ppdu.h"
 #include "wifi-tx-vector.h"
 #include "wifi-types.h"
@@ -22,7 +20,6 @@
 #include "ns3/event-id.h"
 #include "ns3/nstime.h"
 #include "ns3/simple-ref-count.h"
-#include "ns3/wifi-export.h"
 
 #include <list>
 #include <map>
@@ -63,7 +60,7 @@ class WifiPpdu;
  * to be used by each PHY entity, corresponding to
  * the different amendments of the IEEE 802.11 standard.
  */
-class WIFI_EXPORT PhyEntity
+class PhyEntity : public SimpleRefCount<PhyEntity>
 {
   public:
     /**
@@ -107,6 +104,34 @@ class WIFI_EXPORT PhyEntity
             : isSuccess(s),
               reason(r),
               actionIfFailure(a)
+        {
+        }
+    };
+
+    /**
+     * A struct for both SNR and PER
+     */
+    struct SnrPer
+    {
+        double snr{0.0}; ///< SNR in linear scale
+        double per{1.0}; ///< PER
+
+        /**
+         * Default constructor.
+         */
+        SnrPer()
+        {
+        }
+
+        /**
+         * Constructor for SnrPer.
+         *
+         * @param s the SNR in linear scale
+         * @param p the PER
+         */
+        SnrPer(double s, double p)
+            : snr(s),
+              per(p)
         {
         }
     };
@@ -258,6 +283,16 @@ class WIFI_EXPORT PhyEntity
     virtual uint32_t GetMaxPsduSize() const = 0;
 
     /**
+     * A pair containing information on the PHY header chunk, namely
+     * the start and stop times of the chunk and the WifiMode used.
+     */
+    typedef std::pair<std::pair<Time /* start */, Time /* stop */>, WifiMode> PhyHeaderChunkInfo;
+    /**
+     * A map of PhyHeaderChunkInfo elements per PPDU field.
+     * @see PhyHeaderChunkInfo
+     */
+    typedef std::map<WifiPpduField, PhyHeaderChunkInfo> PhyHeaderSections;
+    /**
      * Return a map of PHY header chunk information per PPDU field.
      * This map will contain the PPDU fields that are actually present based
      * on the \p txVector information.
@@ -366,14 +401,21 @@ class WIFI_EXPORT PhyEntity
      */
     virtual void CancelAllEvents();
     /**
+     * @return \c true if there is no end preamble detection event running, \c false otherwise
+     */
+    bool NoEndPreambleDetectionEvents() const;
+    /**
      * Cancel all end preamble detection events.
      */
     void CancelRunningEndPreambleDetectionEvents();
 
-    /// @copydoc WifiPhy::GetTimeToPreambleDetectionEnd
-    virtual std::optional<Time> GetTimeToPreambleDetectionEnd() const;
-
-    /// @copydoc WifiPhy::GetTimeToMacHdrEnd
+    /**
+     * Get the remaining time to the end of the MAC header reception of the next MPDU being
+     * received from the given STA, if any.
+     *
+     * @param staId the STA-ID of the transmitter; equals SU_STA_ID for SU PPDUs
+     * @return the remaining time to the end of the MAC header reception of the next MPDU, if any
+     */
     virtual std::optional<Time> GetTimeToMacHdrEnd(uint16_t staId) const;
 
     /**
@@ -681,7 +723,7 @@ class WIFI_EXPORT PhyEntity
                                     uint16_t staId,
                                     const std::vector<bool>& statusPerMpdu);
     /**
-     * Perform amendment-specific actions when the payload is unsuccessfully received.
+     * Perform amendment-specific actions when the payload is unsuccessfuly received.
      *
      * @param psdu the PSDU that we failed to received
      * @param snr the SNR of the received PSDU in linear scale
@@ -930,7 +972,7 @@ class WIFI_EXPORT PhyEntity
                           //!< includes the noise figure)
 
     static uint64_t m_globalPpduUid; //!< Global counter of the PPDU UID
-};
+};                                   // class PhyEntity
 
 /**
  * @brief Stream insertion operator.

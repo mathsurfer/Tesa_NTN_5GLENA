@@ -9,7 +9,7 @@
 
 #include "ns3/angles.h"
 
-#include <cmath>
+#include <math.h>
 
 /**
  *  @file

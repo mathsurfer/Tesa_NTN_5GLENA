@@ -77,6 +77,13 @@ class PhasedArraySpectrumPropagationLossModel : public Object
         Ptr<const MobilityModel> b,
         Ptr<const PhasedArrayModel> aPhasedArrayModel,
         Ptr<const PhasedArrayModel> bPhasedArrayModel) const;
+        
+      /*  Ptr<SpectrumSignalParameters> PCalcRxPowerSpectralDensity(
+        Ptr<const SpectrumSignalParameters> txPsd,
+        Ptr<const MobilityModel> a,
+        Ptr<const MobilityModel> b,
+        Ptr<const ParabolicAntennaModel> aPhasedArrayModel,
+        Ptr<const ParabolicAntennaModel> bPhasedArrayModel) const;*/
 
     /**
      * If this loss model uses objects of type RandomVariableStream,
@@ -123,6 +130,17 @@ class PhasedArraySpectrumPropagationLossModel : public Object
         Ptr<const MobilityModel> b,
         Ptr<const PhasedArrayModel> aPhasedArrayModel,
         Ptr<const PhasedArrayModel> bPhasedArrayModel) const = 0;
+
+
+
+ /*virtual Ptr<SpectrumSignalParameters> DoCalcRxPowerSpectralDensity(
+        Ptr<const SpectrumSignalParameters> params,
+        Ptr<const MobilityModel> a,
+        Ptr<const MobilityModel> b,
+        Ptr<const ParabolicAntennaModel> aPhasedArrayModel,
+        Ptr<const ParabolicAntennaModel> bPhasedArrayModel) const = 0;*/
+
+
 
     Ptr<PhasedArraySpectrumPropagationLossModel>
         m_next; //!< PhasedArraySpectrumPropagationLossModel chained to this one.

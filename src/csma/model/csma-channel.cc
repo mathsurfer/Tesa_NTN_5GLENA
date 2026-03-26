@@ -119,25 +119,28 @@ CsmaChannel::Detach(uint32_t deviceId)
 {
     NS_LOG_FUNCTION(this << deviceId);
 
-    if (deviceId >= m_deviceList.size())
+    if (deviceId < m_deviceList.size())
+    {
+        if (!m_deviceList[deviceId].active)
+        {
+            NS_LOG_WARN("CsmaChannel::Detach(): Device is already detached (" << deviceId << ")");
+            return false;
+        }
+
+        m_deviceList[deviceId].active = false;
+
+        if ((m_state == TRANSMITTING) && (m_currentSrc == deviceId))
+        {
+            NS_LOG_WARN("CsmaChannel::Detach(): Device is currently"
+                        << "transmitting (" << deviceId << ")");
+        }
+
+        return true;
+    }
+    else
     {
         return false;
     }
-
-    if (!m_deviceList[deviceId].active)
-    {
-        NS_LOG_WARN("CsmaChannel::Detach(): Device is already detached (" << deviceId << ")");
-        return false;
-    }
-
-    m_deviceList[deviceId].active = false;
-
-    if ((m_state == TRANSMITTING) && (m_currentSrc == deviceId))
-    {
-        NS_LOG_WARN("CsmaChannel::Detach(): Device is currently transmitting (" << deviceId << ")");
-    }
-
-    return true;
 }
 
 bool

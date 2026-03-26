@@ -58,7 +58,6 @@ using namespace ns3;
    \endverbatim
  */
 // clang-format on
-
 class HwmpDoRfRegressionTest : public TestCase
 {
   public:

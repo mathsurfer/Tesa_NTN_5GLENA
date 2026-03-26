@@ -14,9 +14,7 @@ namespace ns3
 void
 AddbaExtension::Print(std::ostream& os) const
 {
-    os << "ADDBA Extension=[No Fragmentation: " << +m_extParamSet.noFragment
-       << ", HE Fragmentation Operation: " << +m_extParamSet.heFragmentOp
-       << ", Extended Buffer Size: " << +m_extParamSet.extBufferSize << "]";
+    os << "extBufferSize=" << +m_extParamSet.extBufferSize;
 }
 
 WifiInformationElementId

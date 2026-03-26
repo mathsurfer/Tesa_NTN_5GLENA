@@ -56,8 +56,7 @@ class SplitStringTestCase : public TestCase
     /** Test suite delimiter. */
     const std::string m_delimiter{":|:"};
 
-    // end of class SplitStringTestCase
-};
+}; // class SplitStringTestCase
 
 SplitStringTestCase::SplitStringTestCase()
     : TestCase("split-string")

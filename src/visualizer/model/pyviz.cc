@@ -154,6 +154,13 @@ PyViz::PyViz()
     Config::ConnectFailSafe("/NodeList/*/DeviceList/*/$ns3::PointToPointNetDevice/MacRx",
                             MakeCallback(&PyViz::TraceNetDevRxPointToPoint, this));
 
+    // WiMax
+    Config::ConnectFailSafe("/NodeList/*/DeviceList/*/$ns3::WimaxNetDevice/Tx",
+                            MakeCallback(&PyViz::TraceNetDevTxWimax, this));
+
+    Config::ConnectFailSafe("/NodeList/*/DeviceList/*/$ns3::WimaxNetDevice/Rx",
+                            MakeCallback(&PyViz::TraceNetDevRxWimax, this));
+
     // LTE
     Config::ConnectFailSafe("/NodeList/*/DeviceList/*/$ns3::LteNetDevice/Tx",
                             MakeCallback(&PyViz::TraceNetDevTxLte, this));
@@ -624,7 +631,7 @@ PyViz::TraceNetDevRxCommon(const std::string& context,
     else
     {
         // NS_ASSERT (0);
-        NS_LOG_WARN("Packet has no byte tag");
+        NS_LOG_WARN("Packet has no byte tag; wimax link?");
         uid = packet->GetUid();
     }
 
@@ -787,6 +794,22 @@ PyViz::TraceNetDevPromiscRxCsma(std::string context, Ptr<const Packet> packet)
     {
         TraceNetDevRxCommon(context, packet, ethernetHeader.GetDestination());
     }
+}
+
+void
+PyViz::TraceNetDevTxWimax(std::string context,
+                          Ptr<const Packet> packet,
+                          const Mac48Address& destination)
+{
+    NS_LOG_FUNCTION(context);
+    TraceNetDevTxCommon(context, packet, destination);
+}
+
+void
+PyViz::TraceNetDevRxWimax(std::string context, Ptr<const Packet> packet, const Mac48Address& source)
+{
+    NS_LOG_FUNCTION(context);
+    TraceNetDevRxCommon(context, packet, source);
 }
 
 void

@@ -180,9 +180,10 @@ class AttributeContainerValue : public AttributeValue
      * @tparam ITER \deduced iterator type
      * \param[in] begin Points to first item to copy
      * \param[in] end Points to one after last item to copy
+     * @return This object with items copied.
      */
     template <class ITER>
-    inline void CopyFrom(const ITER begin, const ITER end);
+    inline Ptr<AttributeContainerValue<A, Sep, C>> CopyFrom(const ITER begin, const ITER end);
 
     container_type m_container; //!< Internal container
 };
@@ -571,13 +572,14 @@ AttributeContainerValue<A, Sep, C>::end() const
 
 template <class A, char Sep, template <class...> class C>
 template <class ITER>
-void
+Ptr<AttributeContainerValue<A, Sep, C>>
 AttributeContainerValue<A, Sep, C>::CopyFrom(const ITER begin, const ITER end)
 {
     for (ITER iter = begin; iter != end; ++iter)
     {
         m_container.push_back(Create<A>(*iter));
     }
+    return this;
 }
 
 template <typename A, char Sep, template <typename...> class C, typename T1>

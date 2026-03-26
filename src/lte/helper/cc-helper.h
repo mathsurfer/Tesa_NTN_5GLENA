@@ -187,7 +187,8 @@ class CcHelper : public Object
     uint16_t m_dlBandwidth;               ///< Downlink Bandwidth
     uint16_t m_ulBandwidth;               ///< Uplink Bandwidth
     uint16_t m_numberOfComponentCarriers; ///< Number of component carriers
-};
+
+}; // end of `class LteHelper`
 
 } // namespace ns3
 

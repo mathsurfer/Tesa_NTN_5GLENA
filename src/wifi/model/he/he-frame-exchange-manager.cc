@@ -334,31 +334,20 @@ HeFrameExchangeManager::GetMuRtsDurationId(uint32_t muRtsSize,
 {
     NS_LOG_FUNCTION(this << muRtsSize << muRtsTxVector << txDuration << response);
 
-    WifiTxVector txVector;
-    txVector.SetMode(GetCtsModeAfterMuRts());
-    const auto singleDurationId =
-        VhtFrameExchangeManager::GetRtsDurationId(txVector, txDuration, response);
-
     if (m_edca->GetTxopLimit(m_linkId).IsZero())
     {
-        return singleDurationId;
+        WifiTxVector txVector;
+        txVector.SetMode(GetCtsModeAfterMuRts());
+        return VhtFrameExchangeManager::GetRtsDurationId(txVector, txDuration, response);
     }
 
     // under multiple protection settings, if the TXOP limit is not null, Duration/ID
     // is set to cover the remaining TXOP time (Sec. 9.2.5.2 of 802.11-2016).
     // The TXOP holder may exceed the TXOP limit in some situations (Sec. 10.22.2.8
     // of 802.11-2016)
-    auto duration =
-        std::max(m_edca->GetRemainingTxop(m_linkId) -
-                     WifiPhy::CalculateTxDuration(muRtsSize, muRtsTxVector, m_phy->GetPhyBand()),
-                 Seconds(0));
-
-    if (m_protectSingleExchange)
-    {
-        duration = std::min(duration, singleDurationId + m_singleExchangeProtectionSurplus);
-    }
-
-    return duration;
+    return std::max(m_edca->GetRemainingTxop(m_linkId) -
+                        WifiPhy::CalculateTxDuration(muRtsSize, muRtsTxVector, m_phy->GetPhyBand()),
+                    Seconds(0));
 }
 
 void
@@ -432,8 +421,53 @@ HeFrameExchangeManager::CtsAfterMuRtsTimeout(Ptr<WifiMpdu> muRts, const WifiTxVe
         return;
     }
 
-    DoCtsTimeout(m_psduMap);
+    DoCtsAfterMuRtsTimeout(m_psduMap);
     m_psduMap.clear();
+}
+
+void
+HeFrameExchangeManager::DoCtsAfterMuRtsTimeout(const WifiPsduMap& psduMap)
+{
+    NS_LOG_FUNCTION(this);
+
+    // GetUpdateCwOnCtsTimeout() needs to be called before resetting m_sentRtsTo
+    const auto updateCw = GetUpdateCwOnCtsTimeout();
+
+    m_sentRtsTo.clear();
+    for (const auto& psdu : psduMap)
+    {
+        for (const auto& mpdu : *PeekPointer(psdu.second))
+        {
+            if (mpdu->IsQueued())
+            {
+                mpdu->ResetInFlight(m_linkId);
+            }
+        }
+    }
+
+    if (const auto& hdr = psduMap.cbegin()->second->GetHeader(0); !hdr.GetAddr1().IsGroup())
+    {
+        GetWifiRemoteStationManager()->ReportRtsFailed(hdr);
+    }
+
+    for (const auto& [staId, psdu] : psduMap)
+    {
+        if (psdu->GetAddr1().IsGroup())
+        {
+            continue;
+        }
+        if (auto droppedMpdu = DropMpduIfRetryLimitReached(psdu))
+        {
+            GetWifiRemoteStationManager()->ReportFinalRtsFailed(droppedMpdu->GetHeader());
+        }
+        // Make the sequence numbers of the MPDUs available again if the MPDUs have never
+        // been transmitted, both in case the MPDUs have been discarded and in case the
+        // MPDUs have to be transmitted (because a new sequence number is assigned to
+        // MPDUs that have never been transmitted and are selected for transmission)
+        ReleaseSequenceNumbers(psdu);
+    }
+
+    TransmissionFailed(!updateCw);
 }
 
 Ptr<WifiPsdu>
@@ -464,7 +498,7 @@ HeFrameExchangeManager::CtsTimeout(Ptr<WifiMpdu> rts, const WifiTxVector& txVect
     }
 
     NS_ABORT_MSG_IF(m_psduMap.size() > 1, "RTS/CTS cannot be used to protect an MU PPDU");
-    DoCtsTimeout(m_psduMap);
+    DoCtsTimeout(m_psduMap.begin()->second);
     m_psduMap.clear();
 }
 
@@ -644,8 +678,8 @@ HeFrameExchangeManager::SendPsduMap()
             ForwardPsduDown(triggerPsdu, acknowledgment->muBarTxVector);
 
             // Pass TRIGVECTOR to HE PHY (equivalent to PHY-TRIGGER.request primitive)
-            auto hePhy = std::static_pointer_cast<HePhy>(
-                m_phy->GetPhyEntity(responseTxVector->GetModulationClass()));
+            auto hePhy =
+                StaticCast<HePhy>(m_phy->GetPhyEntity(responseTxVector->GetModulationClass()));
             hePhy->SetTrigVector(m_trigVector, timeout);
 
             return;
@@ -892,8 +926,7 @@ HeFrameExchangeManager::SendPsduMap()
         timerType == WifiTxTimer::WAIT_QOS_NULL_AFTER_BSRP_TF)
     {
         // Pass TRIGVECTOR to HE PHY (equivalent to PHY-TRIGGER.request primitive)
-        auto hePhy = std::static_pointer_cast<HePhy>(
-            m_phy->GetPhyEntity(responseTxVector->GetModulationClass()));
+        auto hePhy = StaticCast<HePhy>(m_phy->GetPhyEntity(responseTxVector->GetModulationClass()));
         hePhy->SetTrigVector(m_trigVector, m_txTimer.GetDelayLeft());
     }
     else if (timerType == WifiTxTimer::NOT_RUNNING &&
@@ -930,8 +963,7 @@ HeFrameExchangeManager::ForwardPsduMapDown(WifiConstPsduMap psduMap, WifiTxVecto
 
     if (ns3::IsDlMu(txVector.GetPreambleType()))
     {
-        auto hePhy =
-            std::static_pointer_cast<HePhy>(m_phy->GetPhyEntity(txVector.GetModulationClass()));
+        auto hePhy = StaticCast<HePhy>(m_phy->GetPhyEntity(txVector.GetModulationClass()));
         auto sigBMode = hePhy->GetSigBMode(txVector);
         txVector.SetSigBMode(sigBMode);
     }
@@ -954,8 +986,11 @@ HeFrameExchangeManager::ForwardPsduMapDown(WifiConstPsduMap psduMap, WifiTxVecto
         txVector.SetAggregation(true);
     }
 
-    const auto txDuration = WifiPhy::CalculateTxDuration(psduMap, txVector, m_phy->GetPhyBand());
-    SetTxNav(*psduMap.cbegin()->second->begin(), txDuration);
+    auto txDuration = WifiPhy::CalculateTxDuration(psduMap, txVector, m_phy->GetPhyBand());
+    // The TXNAV timer is a single timer, shared by the EDCAFs within a STA, that is initialized
+    // with the duration from the Duration/ID field in the frame most recently successfully
+    // transmitted by the TXOP holder, except for PS-Poll frames. (Sec.10.23.2.2 IEEE 802.11-2020)
+    m_txNav = Max(m_txNav, Simulator::Now() + txDuration + psduMap.cbegin()->second->GetDuration());
 
     m_phy->Send(psduMap, txVector);
 }
@@ -1131,13 +1166,7 @@ HeFrameExchangeManager::CalculateAcknowledgmentTime(WifiAcknowledgment* acknowle
         std::tie(dlMuTfMuBarAcknowledgment->ulLength, duration) =
             HePhy::ConvertHeTbPpduDurationToLSigLength(duration, txVector, m_phy->GetPhyBand());
 
-        const auto muBarVariant = (txVector.GetModulationClass() == WIFI_MOD_CLASS_HE)
-                                      ? TriggerFrameVariant::HE
-                                      : TriggerFrameVariant::EHT;
-        uint32_t muBarSize =
-            GetMuBarSize(muBarVariant,
-                         dlMuTfMuBarAcknowledgment->muBarTxVector.GetChannelWidth(),
-                         dlMuTfMuBarAcknowledgment->barTypes);
+        uint32_t muBarSize = GetMuBarSize(dlMuTfMuBarAcknowledgment->barTypes);
         if (dlMuTfMuBarAcknowledgment->muBarTxVector.GetModulationClass() >= WIFI_MOD_CLASS_VHT)
         {
             // MU-BAR TF will be sent as an S-MPDU
@@ -1243,14 +1272,10 @@ HeFrameExchangeManager::GetCtsTxVectorAfterMuRts(const CtrlTriggerHeader& trigge
     {
         bw = MHz_u{80};
     }
-    else if (ru == 68)
-    {
-        bw = MHz_u{160};
-    }
     else
     {
-        NS_ASSERT(ru == 69);
-        bw = MHz_u{320};
+        NS_ASSERT(ru == 68);
+        bw = MHz_u{160};
     }
 
     auto txVector = GetWifiRemoteStationManager()->GetCtsTxVector(m_bssid, GetCtsModeAfterMuRts());
@@ -1282,13 +1307,8 @@ HeFrameExchangeManager::GetTxDuration(uint32_t ppduPayloadSize,
         NS_ASSERT_MSG(!psduInfo->seqNumbers.empty(), "No sequence number for " << receiver);
         const auto tid = psduInfo->seqNumbers.cbegin()->first;
 
-        const auto muBarVariant = (txParams.m_txVector.GetModulationClass() == WIFI_MOD_CLASS_HE)
-                                      ? TriggerFrameVariant::HE
-                                      : TriggerFrameVariant::EHT;
         ppduPayloadSize = MpduAggregator::GetSizeIfAggregated(
-            GetMuBarSize(muBarVariant,
-                         txParams.m_txVector.GetChannelWidth(),
-                         {m_mac->GetBarTypeAsOriginator(receiver, tid)}),
+            GetMuBarSize({m_mac->GetBarTypeAsOriginator(receiver, tid)}),
             ppduPayloadSize);
     }
 
@@ -1512,7 +1532,7 @@ HeFrameExchangeManager::GetHeTbTxVector(CtrlTriggerHeader trigger, Mac48Address 
     NS_ASSERT_MSG(heConfiguration, "This STA has to be an HE station to send an HE TB PPDU");
     v.SetBssColor(heConfiguration->m_bssColor);
 
-    if (userInfoIt->IsUlTargetRxPowerMaxTxPower())
+    if (userInfoIt->IsUlTargetRssiMaxTxPower())
     {
         NS_LOG_LOGIC("AP requested using the max transmit power (" << m_phy->GetTxPowerEnd()
                                                                    << " dBm)");
@@ -1544,7 +1564,7 @@ HeFrameExchangeManager::GetHeTbTxVector(CtrlTriggerHeader trigger, Mac48Address 
         trigger.GetApTxPower() -
         static_cast<int8_t>(
             *optRssi); // cast RSSI to be on equal footing with AP Tx power information
-    auto reqTxPower = dBm_u{static_cast<double>(userInfoIt->GetUlTargetRxPower() + pathLossDb)};
+    auto reqTxPower = dBm_u{static_cast<double>(userInfoIt->GetUlTargetRssi() + pathLossDb)};
 
     // Convert the transmit power to a power level
     uint8_t numPowerLevels = m_phy->GetNTxPower();
@@ -1565,13 +1585,12 @@ HeFrameExchangeManager::GetHeTbTxVector(CtrlTriggerHeader trigger, Mac48Address 
                                                   << m_phy->GetTxPowerEnd() << "dBm)");
     }
     v.SetTxPowerLevel(powerLevel);
-    NS_LOG_LOGIC("UL power control: input "
-                 << "{pathLoss=" << pathLossDb << "dB, reqTxPower=" << reqTxPower << "dBm}"
-                 << " output "
-                 << "{powerLevel=" << +powerLevel << " -> " << m_phy->GetPower(powerLevel) << "dBm}"
-                 << " PHY power capa "
-                 << "{min=" << m_phy->GetTxPowerStart() << "dBm, max=" << m_phy->GetTxPowerEnd()
-                 << "dBm, levels:" << +numPowerLevels << "}");
+    NS_LOG_LOGIC("UL power control: "
+                 << "input {pathLoss=" << pathLossDb << "dB, reqTxPower=" << reqTxPower << "dBm}"
+                 << " output {powerLevel=" << +powerLevel << " -> " << m_phy->GetPower(powerLevel)
+                 << "dBm}"
+                 << " PHY power capa {min=" << m_phy->GetTxPowerStart() << "dBm, max="
+                 << m_phy->GetTxPowerEnd() << "dBm, levels:" << +numPowerLevels << "}");
 
     return v;
 }
@@ -1596,20 +1615,12 @@ HeFrameExchangeManager::SetTargetRssi(CtrlTriggerHeader& trigger) const
         auto itAidAddr = staList.find(userInfo.GetAid12());
         NS_ASSERT(itAidAddr != staList.end());
         auto optRssi = GetMostRecentRssi(itAidAddr->second);
-        if (!optRssi.has_value())
-        {
-            // This might happen after static setup where the AP has not received any
-            // frame from the client yet.
-            userInfo.SetUlTargetRxPowerMaxTxPower();
-            continue;
-        }
-
         NS_ASSERT(optRssi);
         auto rssi = static_cast<int8_t>(*optRssi);
         rssi = (rssi >= -20)
                    ? -20
                    : ((rssi <= -110) ? -110 : rssi); // cap so as to keep within [-110; -20] dBm
-        userInfo.SetUlTargetRxPower(rssi);
+        userInfo.SetUlTargetRssi(rssi);
     }
 }
 
@@ -1760,19 +1771,15 @@ HeFrameExchangeManager::SendMultiStaBlockAck(const WifiTxParameters& txParams, T
      * settings defined in 9.2.5.2. (Sec. 9.2.5.7 of 802.11ax-2021)
      */
     NS_ASSERT(m_edca);
-    const auto singleDurationId = Max(durationId - m_phy->GetSifs() - txDuration, Seconds(0));
-    if (m_edca->GetTxopLimit(m_linkId).IsZero()) // single protection settings
+    if (m_edca->GetTxopLimit(m_linkId).IsZero())
     {
-        psdu->SetDuration(singleDurationId);
+        // single protection settings
+        psdu->SetDuration(Max(durationId - m_phy->GetSifs() - txDuration, Seconds(0)));
     }
-    else // multiple protection settings
+    else
     {
-        auto duration = Max(m_edca->GetRemainingTxop(m_linkId) - txDuration, Seconds(0));
-        if (m_protectSingleExchange)
-        {
-            duration = std::min(duration, singleDurationId + m_singleExchangeProtectionSurplus);
-        }
-        psdu->SetDuration(duration);
+        // multiple protection settings
+        psdu->SetDuration(Max(m_edca->GetRemainingTxop(m_linkId) - txDuration, Seconds(0)));
     }
 
     psdu->GetPayload(0)->AddPacketTag(m_muSnrTag);
@@ -1909,7 +1916,7 @@ HeFrameExchangeManager::SendQosNullFramesInTbPpdu(const CtrlTriggerHeader& trigg
     // TR3: Sequence numbers for transmitted QoS (+)Null frames may be set
     // to any value. (Table 10-3 of 802.11-2016)
     header.SetSequenceNumber(0);
-    // Set the EOSP bit so that HtFEM::FinalizeMacHeader will add the Queue Size
+    // Set the EOSP bit so that NotifyTxToEdca will add the Queue Size
     header.SetQosEosp();
 
     WifiTxParameters txParams;
@@ -1996,9 +2003,9 @@ HeFrameExchangeManager::ReceiveMuBarTrigger(const CtrlTriggerHeader& trigger,
 }
 
 bool
-HeFrameExchangeManager::IsIntraBssPpdu(const WifiMacHeader& hdr, const WifiTxVector& txVector) const
+HeFrameExchangeManager::IsIntraBssPpdu(Ptr<const WifiPsdu> psdu, const WifiTxVector& txVector) const
 {
-    NS_LOG_FUNCTION(this << hdr << txVector);
+    NS_LOG_FUNCTION(this << psdu << txVector);
 
     // "If, based on the MAC address information of a frame carried in a received PPDU, the
     // received PPDU satisfies both intra-BSS and inter-BSS conditions, then the received PPDU is
@@ -2006,9 +2013,9 @@ HeFrameExchangeManager::IsIntraBssPpdu(const WifiMacHeader& hdr, const WifiTxVec
     // Hence, check first if the intra-BSS conditions using MAC address information are satisfied:
     // 1. "The PPDU carries a frame that has an RA, TA, or BSSID field value that is equal to
     //    the BSSID of the BSS in which the STA is associated"
-    const auto ra = hdr.GetAddr1();
-    auto ta = hdr.GetAddr2();
-    const auto bssid = hdr.GetAddr3();
+    const auto ra = psdu->GetAddr1();
+    const auto ta = psdu->GetAddr2();
+    const auto bssid = psdu->GetHeader(0).GetAddr3();
     const auto empty = Mac48Address();
 
     if (ra == m_bssid || ta == m_bssid || bssid == m_bssid)
@@ -2019,7 +2026,7 @@ HeFrameExchangeManager::IsIntraBssPpdu(const WifiMacHeader& hdr, const WifiTxVec
     // 2. "The PPDU carries a Control frame that does not have a TA field and that has an
     //    RA field value that matches the saved TXOP holder address of the BSS in which
     //    the STA is associated"
-    if (hdr.IsCtl() && ta == empty && ra == m_txopHolder)
+    if (psdu->GetHeader(0).IsCtl() && ta == empty && ra == m_txopHolder)
     {
         return true;
     }
@@ -2061,18 +2068,16 @@ HeFrameExchangeManager::IsIntraBssPpdu(const WifiMacHeader& hdr, const WifiTxVec
 }
 
 void
-HeFrameExchangeManager::UpdateNav(const WifiMacHeader& hdr,
-                                  const WifiTxVector& txVector,
-                                  const Time& surplus)
+HeFrameExchangeManager::UpdateNav(Ptr<const WifiPsdu> psdu, const WifiTxVector& txVector)
 {
-    NS_LOG_FUNCTION(this << hdr << txVector << surplus.As(Time::US));
+    NS_LOG_FUNCTION(this << psdu << txVector);
 
-    if (!hdr.HasNav())
+    if (!psdu->HasNav())
     {
         return;
     }
 
-    if (hdr.GetAddr1() == m_self)
+    if (psdu->GetAddr1() == m_self)
     {
         // When the received frame's RA is equal to the STA's own MAC address, the STA
         // shall not update its NAV (IEEE 802.11-2020, sec. 10.3.2.4)
@@ -2082,19 +2087,18 @@ HeFrameExchangeManager::UpdateNav(const WifiMacHeader& hdr,
     // The intra-BSS NAV is updated by an intra-BSS PPDU. The basic NAV is updated by an
     // inter-BSS PPDU or a PPDU that cannot be classified as intra-BSS or inter-BSS.
     // (Section 26.2.4 of 802.11ax-2021)
-    if (!IsIntraBssPpdu(hdr, txVector))
+    if (!IsIntraBssPpdu(psdu, txVector))
     {
         NS_LOG_DEBUG("PPDU not classified as intra-BSS, update the basic NAV");
-        VhtFrameExchangeManager::UpdateNav(hdr, txVector, surplus);
+        VhtFrameExchangeManager::UpdateNav(psdu, txVector);
         return;
     }
 
     NS_LOG_DEBUG("PPDU classified as intra-BSS, update the intra-BSS NAV");
-    Time duration = hdr.GetDuration();
+    Time duration = psdu->GetDuration();
     NS_LOG_DEBUG("Duration/ID=" << duration);
-    duration += surplus;
 
-    if (hdr.IsCfEnd())
+    if (psdu->GetHeader(0).IsCfEnd())
     {
         // An HE STA that maintains two NAVs (see 26.2.4) and receives a CF-End frame should reset
         // the basic NAV if the received CF-End frame is carried in an inter-BSS PPDU and reset the
@@ -2122,16 +2126,14 @@ HeFrameExchangeManager::UpdateNav(const WifiMacHeader& hdr,
         // The “CTS_Time” shall be calculated using the length of the CTS frame and the data
         // rate at which the RTS frame used for the most recent NAV update was received
         // (IEEE 802.11-2016 sec. 10.3.2.4)
-        if (hdr.IsRts())
+        if (psdu->GetHeader(0).IsRts())
         {
-            auto addr2 = hdr.GetAddr2();
             WifiTxVector ctsTxVector =
-                GetWifiRemoteStationManager()->GetCtsTxVector(addr2, txVector.GetMode());
+                GetWifiRemoteStationManager()->GetCtsTxVector(psdu->GetAddr2(), txVector.GetMode());
             auto navResetDelay =
                 2 * m_phy->GetSifs() +
                 WifiPhy::CalculateTxDuration(GetCtsSize(), ctsTxVector, m_phy->GetPhyBand()) +
                 WifiPhy::CalculatePhyPreambleAndHeaderDuration(ctsTxVector) + 2 * m_phy->GetSlot();
-            m_intraBssNavResetEvent.Cancel();
             m_intraBssNavResetEvent =
                 Simulator::Schedule(navResetDelay,
                                     &HeFrameExchangeManager::IntraBssNavResetTimeout,

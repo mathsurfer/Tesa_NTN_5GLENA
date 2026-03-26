@@ -132,17 +132,17 @@ class WifiSpectrumPhyInterface : public SpectrumPhy
     const WifiSpectrumBands& GetBands() const;
 
     /**
-     * Set the RU spectrum bands handled by this interface (if any)
+     * Set the HE RU spectrum bands handled by this interface (if any)
      *
-     * @param ruBands the RU spectrum bands
+     * @param heRuBands the HE RU spectrum bands
      */
-    void SetRuBands(RuBands&& ruBands);
+    void SetHeRuBands(HeRuBands&& heRuBands);
     /**
-     * Get the RU spectrum bands handled by this interface
+     * Get the HE RU spectrum bands handled by this interface
      *
-     * @return the RU spectrum bands
+     * @return the HE RU spectrum bands
      */
-    const RuBands& GetRuBands() const;
+    const HeRuBands& GetHeRuBands() const;
 
   private:
     void DoDispose() override;
@@ -157,7 +157,7 @@ class WifiSpectrumPhyInterface : public SpectrumPhy
 
     WifiSpectrumBands
         m_bands; /**< Store all the distinct spectrum bands associated with every channels widths */
-    RuBands m_ruBands; /**< Store all the distinct spectrum bands associated with every RU */
+    HeRuBands m_heRuBands; /**< Store all the distinct spectrum bands associated with every RU */
 };
 
 } // namespace ns3

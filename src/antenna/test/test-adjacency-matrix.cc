@@ -23,9 +23,7 @@ class SymmetricAdjacencyMatrixTestCase : public TestCase
      * The constructor of the test case
      */
     SymmetricAdjacencyMatrixTestCase()
-        : TestCase("SymmetricAdjacencyMatrix test case")
-    {
-    }
+        : TestCase("SymmetricAdjacencyMatrix test case"){};
 
   private:
     /**

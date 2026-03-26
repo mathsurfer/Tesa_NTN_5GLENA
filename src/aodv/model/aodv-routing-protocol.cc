@@ -13,6 +13,11 @@
  * Authors: Elena Buchatskaia <borovkovaes@iitp.ru>
  *          Pavel Boyko <boyko@iitp.ru>
  */
+#define NS_LOG_APPEND_CONTEXT                                                                      \
+    if (m_ipv4)                                                                                    \
+    {                                                                                              \
+        std::clog << "[node " << m_ipv4->GetObject<Node>()->GetId() << "] ";                       \
+    }
 
 #include "aodv-routing-protocol.h"
 
@@ -32,13 +37,6 @@
 
 #include <algorithm>
 #include <limits>
-
-#undef NS_LOG_APPEND_CONTEXT
-#define NS_LOG_APPEND_CONTEXT                                                                      \
-    if (m_ipv4)                                                                                    \
-    {                                                                                              \
-        std::clog << "[node " << m_ipv4->GetObject<Node>()->GetId() << "] ";                       \
-    }
 
 namespace ns3
 {

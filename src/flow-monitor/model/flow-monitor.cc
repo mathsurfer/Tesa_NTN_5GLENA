@@ -74,6 +74,12 @@ FlowMonitor::GetTypeId()
     return tid;
 }
 
+TypeId
+FlowMonitor::GetInstanceTypeId() const
+{
+    return GetTypeId();
+}
+
 FlowMonitor::FlowMonitor()
     : m_enabled(false)
 {
@@ -434,53 +440,45 @@ FlowMonitor::SerializeToXmlStream(std::ostream& os,
     indent += 2;
     os << std::string(indent, ' ') << "<FlowStats>\n";
     indent += 2;
-    for (const auto& [flowId, flowStats] : m_flowStats)
+    for (auto flowI = m_flowStats.begin(); flowI != m_flowStats.end(); flowI++)
     {
         os << std::string(indent, ' ');
-#define ATTRIB(name) " " #name "=\"" << flowStats.name << "\""
-#define ATTRIB_TIME(name) " " #name "=\"" << flowStats.name.As(Time::NS) << "\""
-        os << "<Flow";
-        os << " flowId=\"" << flowId << "\"";
-        os << ATTRIB_TIME(timeFirstTxPacket);
-        os << ATTRIB_TIME(timeFirstRxPacket);
-        os << ATTRIB_TIME(timeLastTxPacket);
-        os << ATTRIB_TIME(timeLastRxPacket);
-        os << ATTRIB_TIME(delaySum);
-        os << ATTRIB_TIME(jitterSum);
-        os << ATTRIB_TIME(lastDelay);
-        os << ATTRIB_TIME(maxDelay);
-        os << ATTRIB_TIME(minDelay);
-        os << ATTRIB(txBytes);
-        os << ATTRIB(rxBytes);
-        os << ATTRIB(txPackets);
-        os << ATTRIB(rxPackets);
-        os << ATTRIB(lostPackets);
-        os << ATTRIB(timesForwarded);
-        os << ">\n";
+#define ATTRIB(name) " " #name "=\"" << flowI->second.name << "\""
+#define ATTRIB_TIME(name) " " #name "=\"" << flowI->second.name.As(Time::NS) << "\""
+        os << "<Flow flowId=\"" << flowI->first << "\"" << ATTRIB_TIME(timeFirstTxPacket)
+           << ATTRIB_TIME(timeFirstRxPacket) << ATTRIB_TIME(timeLastTxPacket)
+           << ATTRIB_TIME(timeLastRxPacket) << ATTRIB_TIME(delaySum) << ATTRIB_TIME(jitterSum)
+           << ATTRIB_TIME(lastDelay) << ATTRIB_TIME(maxDelay) << ATTRIB_TIME(minDelay)
+           << ATTRIB(txBytes) << ATTRIB(rxBytes) << ATTRIB(txPackets) << ATTRIB(rxPackets)
+           << ATTRIB(lostPackets) << ATTRIB(timesForwarded) << ">\n";
 #undef ATTRIB_TIME
 #undef ATTRIB
 
         indent += 2;
-        for (uint32_t reasonCode = 0; reasonCode < flowStats.packetsDropped.size(); reasonCode++)
+        for (uint32_t reasonCode = 0; reasonCode < flowI->second.packetsDropped.size();
+             reasonCode++)
         {
             os << std::string(indent, ' ');
             os << "<packetsDropped reasonCode=\"" << reasonCode << "\""
-               << " number=\"" << flowStats.packetsDropped[reasonCode] << "\" />\n";
+               << " number=\"" << flowI->second.packetsDropped[reasonCode] << "\" />\n";
         }
-        for (uint32_t reasonCode = 0; reasonCode < flowStats.bytesDropped.size(); reasonCode++)
+        for (uint32_t reasonCode = 0; reasonCode < flowI->second.bytesDropped.size(); reasonCode++)
         {
             os << std::string(indent, ' ');
             os << "<bytesDropped reasonCode=\"" << reasonCode << "\""
-               << " bytes=\"" << flowStats.bytesDropped[reasonCode] << "\" />\n";
+               << " bytes=\"" << flowI->second.bytesDropped[reasonCode] << "\" />\n";
         }
         if (enableHistograms)
         {
-            flowStats.delayHistogram.SerializeToXmlStream(os, indent, "delayHistogram");
-            flowStats.jitterHistogram.SerializeToXmlStream(os, indent, "jitterHistogram");
-            flowStats.packetSizeHistogram.SerializeToXmlStream(os, indent, "packetSizeHistogram");
-            flowStats.flowInterruptionsHistogram.SerializeToXmlStream(os,
-                                                                      indent,
-                                                                      "flowInterruptionsHistogram");
+            flowI->second.delayHistogram.SerializeToXmlStream(os, indent, "delayHistogram");
+            flowI->second.jitterHistogram.SerializeToXmlStream(os, indent, "jitterHistogram");
+            flowI->second.packetSizeHistogram.SerializeToXmlStream(os,
+                                                                   indent,
+                                                                   "packetSizeHistogram");
+            flowI->second.flowInterruptionsHistogram.SerializeToXmlStream(
+                os,
+                indent,
+                "flowInterruptionsHistogram");
         }
         indent -= 2;
 
@@ -523,7 +521,7 @@ void
 FlowMonitor::SerializeToXmlFile(std::string fileName, bool enableHistograms, bool enableProbes)
 {
     NS_LOG_FUNCTION(this << fileName << enableHistograms << enableProbes);
-    std::ofstream os(fileName, std::ios::out);
+    std::ofstream os(fileName, std::ios::out | std::ios::binary);
     os << "<?xml version=\"1.0\" ?>\n";
     SerializeToXmlStream(os, 0, enableHistograms, enableProbes);
     os.close();

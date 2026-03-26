@@ -40,7 +40,8 @@ class UanPropModelIdeal : public UanPropModel
     double GetPathLossDb(Ptr<MobilityModel> a, Ptr<MobilityModel> b, UanTxMode mode) override;
     UanPdp GetPdp(Ptr<MobilityModel> a, Ptr<MobilityModel> b, UanTxMode mode) override;
     Time GetDelay(Ptr<MobilityModel> a, Ptr<MobilityModel> b, UanTxMode mode) override;
-};
+
+}; // class UanPropModelIdeal
 
 } // namespace ns3
 

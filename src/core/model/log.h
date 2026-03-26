@@ -326,22 +326,13 @@ class LogComponent
      *                  functions which help implement the logging facility.
      */
     LogComponent(const std::string& name, const std::string& file, const LogLevel mask = LOG_NONE);
-
     /**
      * Check if this LogComponent is enabled for \c level
      *
      * @param [in] level The level to check for.
      * @return \c true if we are enabled at \c level.
-     *
-     * @internal
-     * This function is defined in the header to enable inlining for better performance. See:
-     * https://gitlab.com/nsnam/ns-3-dev/-/merge_requests/2448#note_2527898962
      */
-    bool IsEnabled(const LogLevel level) const
-    {
-        return level & m_levels;
-    }
-
+    bool IsEnabled(const LogLevel level) const;
     /**
      * Check if all levels are disabled.
      *
@@ -419,8 +410,7 @@ class LogComponent
     std::string m_name; //!< LogComponent name.
     std::string m_file; //!< File defining this LogComponent.
 
-    // end of class LogComponent
-};
+}; // class LogComponent
 
 /**
  * Get the LogComponent registered with the given name.
@@ -468,8 +458,6 @@ class ParameterLogger
 
     bool m_first{true}; //!< First argument flag, doesn't get `, `.
     std::ostream& m_os; //!< Underlying output stream.
-
-    // end of class ParameterLogger
 };
 
 template <typename T>
@@ -486,10 +474,6 @@ ParameterLogger::operator<<(const T& param)
     {
         // Use + unary operator to cast uint8_t / int8_t to uint32_t / int32_t, respectively
         m_os << +param;
-    }
-    else if constexpr (std::is_pointer_v<T>)
-    {
-        m_os << static_cast<const void*>(&param);
     }
     else
     {

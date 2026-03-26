@@ -40,7 +40,8 @@ class UanNoiseModel : public Object
     virtual void Clear();
 
     void DoDispose() override;
-};
+
+}; // class UanNoiseModel
 
 } // namespace ns3
 

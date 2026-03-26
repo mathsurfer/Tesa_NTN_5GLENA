@@ -45,14 +45,7 @@
 
 #if HAVE_UINT64_T
 
-//PDB original string literal causes access violation on Windows when accessed
-// by binaries that link to core, e.g. tests
-// Substitute function call
-const char *
-cairo_impl64()
-{
-    return "uint64_t";
-}
+const char * cairo_impl64 = "uint64_t";
 
 #define _cairo_uint32s_to_uint64(h,l) ((uint64_t) (h) << 32 | (l))
 
@@ -68,14 +61,7 @@ _cairo_uint64_divrem (cairo_uint64_t num, cairo_uint64_t den)
 
 #else
 
-//PDB original string literal causes access violation on Windows when accessed
-// by binaries that link to core, e.g. tests
-// Substitute function call
-const char *
-cairo_impl64()
-{
-    return "uint32_t";
-}
+const char * cairo_impl64 = "uint32_t";
 
 cairo_uint64_t
 _cairo_uint32_to_uint64 (uint32_t i)
@@ -343,14 +329,7 @@ _cairo_int64_divrem (cairo_int64_t num, cairo_int64_t den)
 
 #if HAVE_UINT128_T
 
-//PDB original string literal causes access violation on Windows when accessed
-// by binaries that link to core, e.g. tests
-// Substitute function call
-const char *
-cairo_impl128()
-{
-    return "uint128_t";
-}
+const char * cairo_impl128 = "uint128_t";
 
 cairo_uquorem128_t
 _cairo_uint128_divrem (cairo_uint128_t num, cairo_uint128_t den)
@@ -364,14 +343,7 @@ _cairo_uint128_divrem (cairo_uint128_t num, cairo_uint128_t den)
 
 #else
 
-//PDB original string literal causes access violation on Windows when accessed
-// by binaries that link to core, e.g. tests
-// Substitute function call
-const char *
-cairo_impl128()
-{
-    return "cairo_uint64_t";
-}
+const char * cairo_impl128 = "cairo_uint64_t";
 
 cairo_uint128_t
 _cairo_uint32_to_uint128 (uint32_t i)
@@ -578,7 +550,7 @@ _cairo_uint128_rsl (cairo_uint128_t a, int shift)
 }
 
 cairo_uint128_t
-_cairo_uint128_rsa (cairo_uint128_t a, int shift)
+_cairo_uint128_rsa (cairo_int128_t a, int shift)
 {
     if (shift >= 64)
     {

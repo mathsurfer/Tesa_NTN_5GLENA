@@ -318,7 +318,7 @@ WifiMacQueue::PeekByTidAndAddress(uint8_t tid, Mac48Address dest, Ptr<const Wifi
     NS_LOG_FUNCTION(this << +tid << dest << item);
     NS_ABORT_IF(dest.IsBroadcast());
     WifiContainerQueueId queueId(WIFI_QOSDATA_QUEUE,
-                                 dest.IsGroup() ? WifiRcvAddr::GROUPCAST : WifiRcvAddr::UNICAST,
+                                 dest.IsGroup() ? WIFI_GROUPCAST : WIFI_UNICAST,
                                  dest,
                                  tid);
     return PeekByQueueId(queueId, item);
@@ -387,13 +387,7 @@ WifiMacQueue::PeekFirstAvailable(uint8_t linkId, Ptr<const WifiMpdu> item) const
 Ptr<WifiMpdu>
 WifiMacQueue::Remove()
 {
-    if (auto queueId = m_scheduler->GetNext(m_ac, std::nullopt, false))
-    {
-        return Remove(GetContainer().GetQueue(queueId.value()).cbegin()->mpdu);
-    }
-
-    NS_LOG_DEBUG("The queue is empty");
-    return nullptr;
+    return Remove(Peek());
 }
 
 Ptr<WifiMpdu>

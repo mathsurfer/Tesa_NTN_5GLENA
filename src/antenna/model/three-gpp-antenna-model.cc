@@ -128,6 +128,7 @@ ThreeGppAntennaModel::GetMaxAttenuation() const
 double
 ThreeGppAntennaModel::GetAntennaElementGain() const
 {
+//std::cout <<"gaaaaaaain= " << m_geMax;
     return m_geMax;
 }
 
@@ -155,6 +156,7 @@ ThreeGppAntennaModel::GetGainDb(Angles a)
         m_geMax - std::min(m_aMax, -(vertGain + horizGain)); // 3D radiation power pattern (dB)
 
     NS_LOG_DEBUG("gain=" << gainDb << " dB");
+   // std::cout <<"heloooooooo";
     return gainDb;
 }
 

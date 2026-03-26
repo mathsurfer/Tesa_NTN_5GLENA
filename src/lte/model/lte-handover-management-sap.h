@@ -116,8 +116,7 @@ class MemberLteHandoverManagementSapProvider : public LteHandoverManagementSapPr
   private:
     C* m_owner; ///< the owner class
 
-    // end of class MemberLteHandoverManagementSapProvider
-};
+}; // end of class MemberLteHandoverManagementSapProvider
 
 template <class C>
 MemberLteHandoverManagementSapProvider<C>::MemberLteHandoverManagementSapProvider(C* owner)
@@ -160,8 +159,7 @@ class MemberLteHandoverManagementSapUser : public LteHandoverManagementSapUser
   private:
     C* m_owner; ///< the owner class
 
-    // end of class MemberLteAnrSapUser
-};
+}; // end of class MemberLteAnrSapUser
 
 template <class C>
 MemberLteHandoverManagementSapUser<C>::MemberLteHandoverManagementSapUser(C* owner)
@@ -184,6 +182,6 @@ MemberLteHandoverManagementSapUser<C>::TriggerHandover(uint16_t rnti, uint16_t t
     return m_owner->DoTriggerHandover(rnti, targetCellId);
 }
 
-} // namespace ns3
+} // end of namespace ns3
 
 #endif /* LTE_HANDOVER_MANAGEMENT_SAP_H */

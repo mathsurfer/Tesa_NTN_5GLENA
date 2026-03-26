@@ -1,3 +1,4 @@
+/* vim: set ts=2 sw=2 sta expandtab ai si cin: */
 /*
  * Copyright (c) 2009 Drexel University
  *

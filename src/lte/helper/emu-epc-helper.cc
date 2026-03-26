@@ -31,14 +31,8 @@ EmuEpcHelper::EmuEpcHelper()
     : NoBackhaulEpcHelper()
 {
     NS_LOG_FUNCTION(this);
-}
-
-void
-EmuEpcHelper::NotifyConstructionCompleted()
-{
-    NoBackhaulEpcHelper::NotifyConstructionCompleted();
-
-    NS_LOG_FUNCTION(this);
+    // To access the attribute value within the constructor
+    ObjectBase::ConstructSelf(AttributeConstructionList());
 
     // Create EmuFdNetDevice for SGW
     EmuFdNetDeviceHelper emu;
@@ -93,6 +87,12 @@ EmuEpcHelper::GetTypeId()
                           MakeStringAccessor(&EmuEpcHelper::m_enbMacAddressBase),
                           MakeStringChecker());
     return tid;
+}
+
+TypeId
+EmuEpcHelper::GetInstanceTypeId() const
+{
+    return GetTypeId();
 }
 
 void

@@ -213,7 +213,8 @@ LteHandoverDelayTestCase::DoRun()
     Simulator::Stop(m_simulationDuration);
     Simulator::Run();
     Simulator::Destroy();
-}
+
+} // end of void LteHandoverDelayTestCase::DoRun ()
 
 void
 LteHandoverDelayTestCase::UeHandoverStartCallback(std::string context,

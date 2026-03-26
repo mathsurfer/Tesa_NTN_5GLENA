@@ -244,8 +244,7 @@ class LteUeMeasurementsPiecewiseTestCase1 : public TestCase
 
     Ptr<MobilityModel> m_ueMobility; ///< the mobility model
 
-    // end of class LteUeMeasurementsPiecewiseTestCase1
-};
+}; // end of class LteUeMeasurementsPiecewiseTestCase1
 
 // ===== LTE-UE-MEASUREMENTS-PIECEWISE-2 TEST SUITE ======================== //
 
@@ -380,8 +379,7 @@ class LteUeMeasurementsPiecewiseTestCase2 : public TestCase
 
     Ptr<MobilityModel> m_ueMobility; ///< the mobility model
 
-    // end of class LteUeMeasurementsPiecewiseTestCase2
-};
+}; // end of class LteUeMeasurementsPiecewiseTestCase2
 
 // ===== LTE-UE-MEASUREMENTS-PIECEWISE-3 TEST SUITE ======================== //
 
@@ -514,8 +512,7 @@ class LteUeMeasurementsPiecewiseTestCase3 : public TestCase
 
     Ptr<MobilityModel> m_enbMobility; ///< the mobility model
 
-    // end of class LteUeMeasurementsPiecewiseTestCase3
-};
+}; // end of class LteUeMeasurementsPiecewiseTestCase3
 
 // ===== LTE-UE-MEASUREMENTS-HANDOVER TEST SUITE =========================== //
 

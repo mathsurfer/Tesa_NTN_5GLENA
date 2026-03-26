@@ -9,6 +9,7 @@
 #ifndef WIFI_PHY_STATE_HELPER_H
 #define WIFI_PHY_STATE_HELPER_H
 
+#include "phy-entity.h"
 #include "wifi-phy-common.h"
 #include "wifi-phy-state.h"
 #include "wifi-ppdu.h"
@@ -17,7 +18,6 @@
 #include "ns3/nstime.h"
 #include "ns3/object.h"
 #include "ns3/traced-callback.h"
-#include "ns3/wifi-export.h"
 
 #include <algorithm>
 #include <list>
@@ -51,9 +51,9 @@ typedef Callback<void,
                  const std::vector<bool>&>
     RxOkCallback;
 /**
- * Callback if PSDU unsuccessfully received
+ * Callback if PSDU unsuccessfuly received
  *
- * arg1: PSDU received unsuccessfully
+ * arg1: PSDU received unsuccessfuly
  */
 typedef Callback<void, Ptr<const WifiPsdu>> RxErrorCallback;
 
@@ -62,7 +62,7 @@ typedef Callback<void, Ptr<const WifiPsdu>> RxErrorCallback;
  *
  * This objects implements the PHY state machine of the Wifi device.
  */
-class WIFI_EXPORT WifiPhyStateHelper : public Object
+class WifiPhyStateHelper : public Object
 {
   public:
     /**
@@ -246,10 +246,8 @@ class WIFI_EXPORT WifiPhyStateHelper : public Object
     void SwitchFromRxEndOk();
     /**
      * Switch from RX after the reception failed.
-     *
-     * @param txVector the TXVECTOR used for transmission of failed frame
      */
-    void SwitchFromRxEndError(const WifiTxVector& txVector);
+    void SwitchFromRxEndError();
     /**
      * Abort current reception following a CCA reset request.
      * @param operatingWidth the channel width the PHY is operating on

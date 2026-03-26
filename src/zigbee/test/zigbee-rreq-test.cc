@@ -238,7 +238,6 @@ ZigbeeRreqRetryTestCase::DoRun()
     //// Configure NWK
 
     ZigbeeHelper zigbee;
-    zigbee.SetNwkLayerOnly();
     ZigbeeStackContainer zigbeeStackContainer = zigbee.Install(lrwpanDevices);
 
     Ptr<ZigbeeStack> zstack0 = zigbeeStackContainer.Get(0)->GetObject<ZigbeeStack>();

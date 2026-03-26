@@ -306,4 +306,4 @@ LteFfrSimple::DoRecvLoadInformation(EpcX2Sap::LoadInformationParams params)
     NS_LOG_FUNCTION(this);
 }
 
-} // namespace ns3
+} // end of namespace ns3

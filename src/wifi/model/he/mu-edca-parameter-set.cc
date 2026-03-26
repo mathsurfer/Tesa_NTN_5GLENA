@@ -155,16 +155,4 @@ MuEdcaParameterSet::DeserializeInformationField(Buffer::Iterator start, uint16_t
     return 13;
 }
 
-void
-MuEdcaParameterSet::Print(std::ostream& os) const
-{
-    os << "MU EDCA Parameter Set=[QoS Info: " << +m_qosInfo << ", MU Parameter Records=";
-    for (const auto& record : m_records)
-    {
-        os << "{AIFSN: " << +record.aifsnField << ", CWmin/max: " << +record.cwMinMax
-           << ", MU EDCA Timer: " << +record.muEdcaTimer << "}, ";
-    }
-    os << "]";
-}
-
 } // namespace ns3

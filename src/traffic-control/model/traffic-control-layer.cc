@@ -48,6 +48,12 @@ TrafficControlLayer::GetTypeId()
     return tid;
 }
 
+TypeId
+TrafficControlLayer::GetInstanceTypeId() const
+{
+    return GetTypeId();
+}
+
 TrafficControlLayer::TrafficControlLayer()
     : Object()
 {

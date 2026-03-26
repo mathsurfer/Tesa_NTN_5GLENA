@@ -68,7 +68,6 @@ namespace olsr
    \endverbatim
  */
 // clang-format on
-
 class TcRegressionTest : public TestCase
 {
   public:

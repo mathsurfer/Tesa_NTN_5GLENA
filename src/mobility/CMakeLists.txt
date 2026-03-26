@@ -57,5 +57,4 @@ build_lib(
     test/rectangle-closest-border-test.cc
     test/steady-state-random-waypoint-mobility-model-test.cc
     test/waypoint-mobility-model-test.cc
-  GENERATE_EXPORT_HEADER
 )

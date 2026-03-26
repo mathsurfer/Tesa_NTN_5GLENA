@@ -53,12 +53,6 @@ class SteadyStateRandomWaypointMobilityModel : public MobilityModel
     SteadyStateRandomWaypointMobilityModel();
     ~SteadyStateRandomWaypointMobilityModel() override;
 
-    // Inherited from MobilityModel
-    Ptr<MobilityModel> Copy() const override
-    {
-        return CreateObject<SteadyStateRandomWaypointMobilityModel>(*this);
-    }
-
   protected:
     void DoInitialize() override;
 

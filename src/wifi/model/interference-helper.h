@@ -9,13 +9,9 @@
 #ifndef INTERFERENCE_HELPER_H
 #define INTERFERENCE_HELPER_H
 
-#include "wifi-phy-common.h"
-#include "wifi-ppdu.h"
-#include "wifi-tx-vector.h"
+#include "phy-entity.h"
 
 #include "ns3/object.h"
-
-#include <map>
 
 namespace ns3
 {
@@ -23,11 +19,6 @@ namespace ns3
 class WifiPpdu;
 class WifiPsdu;
 class ErrorRateModel;
-
-/**
- * A map of the received power for each band
- */
-using RxPowerWattPerChannelBand = std::map<WifiSpectrumBandInfo, Watt_u>;
 
 /**
  * @ingroup wifi
@@ -250,11 +241,11 @@ class InterferenceHelper : public Object
      *
      * @return struct of SNR and PER (with PER being evaluated over the provided time window)
      */
-    SnrPer CalculatePayloadSnrPer(Ptr<Event> event,
-                                  MHz_u channelWidth,
-                                  const WifiSpectrumBandInfo& band,
-                                  uint16_t staId,
-                                  std::pair<Time, Time> relativeMpduStartStop) const;
+    PhyEntity::SnrPer CalculatePayloadSnrPer(Ptr<Event> event,
+                                             MHz_u channelWidth,
+                                             const WifiSpectrumBandInfo& band,
+                                             uint16_t staId,
+                                             std::pair<Time, Time> relativeMpduStartStop) const;
     /**
      * Calculate the SNIR for the event (starting from now until the event end).
      *
@@ -280,10 +271,10 @@ class InterferenceHelper : public Object
      *
      * @return struct of SNR and PER
      */
-    SnrPer CalculatePhyHeaderSnrPer(Ptr<Event> event,
-                                    MHz_u channelWidth,
-                                    const WifiSpectrumBandInfo& band,
-                                    WifiPpduField header) const;
+    PhyEntity::SnrPer CalculatePhyHeaderSnrPer(Ptr<Event> event,
+                                               MHz_u channelWidth,
+                                               const WifiSpectrumBandInfo& band,
+                                               WifiPpduField header) const;
 
     /**
      * Notify that RX has started.
@@ -374,7 +365,7 @@ class InterferenceHelper : public Object
          * @param event causes this NI change
          */
         NiChange(Watt_u power, Ptr<Event> event);
-
+        ~NiChange();
         /**
          * Return the power
          *
@@ -514,7 +505,7 @@ class InterferenceHelper : public Object
      * @param nis the NiChanges
      * @param channelWidth the channel width for header measurement
      * @param band the band
-     * @param phyHeaderSections the map of PHY header sections (\see PhyHeaderSections)
+     * @param phyHeaderSections the map of PHY header sections (\see PhyEntity::PhyHeaderSections)
      *
      * @return the success rate of the PHY header sections
      */
@@ -522,7 +513,7 @@ class InterferenceHelper : public Object
                                         NiChangesPerBand* nis,
                                         MHz_u channelWidth,
                                         const WifiSpectrumBandInfo& band,
-                                        PhyHeaderSections phyHeaderSections) const;
+                                        PhyEntity::PhyHeaderSections phyHeaderSections) const;
 
     double m_noiseFigure;                 //!< noise figure (linear)
     Ptr<ErrorRateModel> m_errorRateModel; //!< error rate model
@@ -536,7 +527,7 @@ class InterferenceHelper : public Object
      * @param niIt iterator of the band to check
      * @returns an iterator to the list of NiChanges
      */
-    NiChanges::iterator GetNextPosition(Time moment, NiChangesPerBand::iterator niIt) const;
+    NiChanges::iterator GetNextPosition(Time moment, NiChangesPerBand::iterator niIt);
     /**
      * Returns an iterator to the last NiChange that is before than moment
      *
@@ -544,7 +535,7 @@ class InterferenceHelper : public Object
      * @param niIt iterator of the band to check
      * @returns an iterator to the list of NiChanges
      */
-    NiChanges::iterator GetPreviousPosition(Time moment, NiChangesPerBand::iterator niIt) const;
+    NiChanges::iterator GetPreviousPosition(Time moment, NiChangesPerBand::iterator niIt);
 
     /**
      * Add NiChange to the list at the appropriate position and

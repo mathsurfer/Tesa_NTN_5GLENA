@@ -8,7 +8,6 @@
 #ifndef MOBILITY_MODEL_H
 #define MOBILITY_MODEL_H
 
-#include "ns3/mobility-export.h"
 #include "ns3/object.h"
 #include "ns3/traced-callback.h"
 #include "ns3/vector.h"
@@ -26,7 +25,7 @@ namespace ns3
  *
  * This is a base class for all specific mobility models.
  */
-class MOBILITY_EXPORT MobilityModel : public Object
+class MobilityModel : public Object
 {
   public:
     /**
@@ -36,15 +35,6 @@ class MOBILITY_EXPORT MobilityModel : public Object
     static TypeId GetTypeId();
     MobilityModel();
     ~MobilityModel() override = 0;
-
-    /**
-     * Copy function allows one to copy the underlying MobilityModel
-     * from a MobilityModel pointer, by calling each children Copy implementation.
-     * This is primarily used by wraparound models for the spectrum channel.
-     *
-     * @return a copy of the current mobility model
-     */
-    virtual Ptr<MobilityModel> Copy() const = 0;
 
     /**
      * @return the current position

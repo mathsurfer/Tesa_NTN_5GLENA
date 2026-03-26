@@ -274,6 +274,18 @@ Ipv4L3ClickProtocol::GetIpForward() const
 }
 
 void
+Ipv4L3ClickProtocol::SetWeakEsModel(bool model)
+{
+    m_strongEndSystemModel = !model;
+}
+
+bool
+Ipv4L3ClickProtocol::GetWeakEsModel() const
+{
+    return !m_strongEndSystemModel;
+}
+
+void
 Ipv4L3ClickProtocol::SetStrongEndSystemModel(bool model)
 {
     m_strongEndSystemModel = model;

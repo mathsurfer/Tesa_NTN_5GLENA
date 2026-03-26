@@ -11,7 +11,6 @@
 
 #include "ns3/fatal-error.h"
 #include "ns3/ptr.h"
-#include "ns3/wifi-export.h"
 
 #include <map>
 
@@ -196,7 +195,7 @@ bool operator<=(AcIndex left, AcIndex right);
  * Map containing the four ACs in increasing order of priority (according to
  * Table 10-1 "UP-to-AC Mappings" of 802.11-2016)
  */
-WIFI_EXPORT extern const std::map<AcIndex, WifiAc> wifiAcList;
+extern const std::map<AcIndex, WifiAc> wifiAcList;
 
 /**
  * @ingroup wifi

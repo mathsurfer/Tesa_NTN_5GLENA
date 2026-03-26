@@ -607,9 +607,7 @@ class Length
 
   private:
     double m_value; //!< Length in meters
-
-    // end of class Length
-};
+};                  // class Length
 
 ATTRIBUTE_HELPER_HEADER(Length);
 

@@ -88,12 +88,12 @@ class PriorityQueueScheduler : public Scheduler
          */
         bool remove(const Scheduler::Event& ev);
 
-        // end of class EventPriorityQueue
-    };
+    }; // class EventPriorityQueue
 
     /** The event queue. */
     EventPriorityQueue m_queue;
-};
+
+}; // class PriorityQueueScheduler
 
 } // namespace ns3
 

@@ -138,23 +138,22 @@ To do this:
 
 1. Obtain the OFSID code.
    An ns-3 specific OFSID branch is provided to ensure
-   operation with ns-3. Use Git to download this branch and CMake to build
+   operation with ns-3. Use mercurial to download this branch and ns3 to build
    the library::
 
-     $ git clone https://gitlab.com/nsnam/openflow
+     $ hg clone http://code.nsnam.org/openflow
      $ cd openflow
 
    From the "openflow" directory, run::
 
-     $ cmake -B build -D CMAKE_INSTALL_PREFIX=./out .
-     $ cmake --build build
-     $ cmake --install build
+     $ ./waf configure
+     $ ./waf build
 
 2. Your OFSID is now built into a libopenflow.a library!
    To link to an ns-3 build with this OpenFlow switch module, run from the ns-3-dev
    (or whatever you have named your distribution)::
 
-     $ ./ns3 configure --enable-examples --enable-tests --with-openflow=path/to/openflow/out
+     $ ./ns3 configure --enable-examples --enable-tests --with-openflow=path/to/openflow
 
 3. Under ``---- Summary of optional NS-3 features:`` you should see:
 

@@ -109,9 +109,7 @@ class HtPpdu : public OfdmPpdu
         uint16_t m_htLength;   ///< HT length
         uint8_t m_aggregation; ///< Aggregation
         uint8_t m_sgi;         ///< Short Guard Interval
-
-        // end of class HtSigHeader
-    };
+    };                         // HtSigHeader
 
     /**
      * Create an HT PPDU.
@@ -174,7 +172,7 @@ class HtPpdu : public OfdmPpdu
                                    const HtSigHeader& htSig) const;
 
     HtSigHeader m_htSig; //!< the HT-SIG PHY header
-};
+};                       // class HtPpdu
 
 } // namespace ns3
 

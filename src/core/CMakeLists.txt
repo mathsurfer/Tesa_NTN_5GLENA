@@ -349,5 +349,4 @@ build_lib(
   HEADER_FILES ${header_files}
   LIBRARIES_TO_LINK ${libraries_to_link}
   TEST_SOURCES ${test_sources}
-  GENERATE_EXPORT_HEADER
 )
